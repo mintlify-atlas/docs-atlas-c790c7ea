@@ -1,0 +1,281 @@
+---
+title: Runtime API
+description: Client-side runtime APIs, utilities, and lifecycle hooks for VitePress
+---
+
+# Runtime API
+
+VitePress exposes several client-side runtime APIs that can be imported from `vitepress` in your theme or markdown files.
+
+## Utilities
+
+### withBase
+
+Appends the site base to internal URLs.
+
+```ts
+import { withBase } from 'vitepress'
+
+const url = withBase('/guide/introduction.html')
+// If base is '/docs/', returns '/docs/guide/introduction.html'
+```
+
+<ParamField path="path" type="string" required>
+  The URL path to append the base to
+</ParamField>
+
+**Returns:** `string` - The path with base prepended
+
+**Behavior:**
+- External URLs (starting with `http://`, `https://`, etc.) are returned unchanged
+- Relative URLs (not starting with `/`) are returned unchanged
+- Only internal absolute URLs (starting with `/`) get the base prepended
+
+---
+
+### inBrowser
+
+Boolean flag indicating if the code is running in a browser environment.
+
+```ts
+import { inBrowser } from 'vitepress'
+
+if (inBrowser) {
+  // Browser-only code
+  window.addEventListener('scroll', handleScroll)
+}
+```
+
+**Type:** `boolean`
+
+Use this to conditionally execute browser-only code and avoid SSR errors.
+
+---
+
+### onContentUpdated
+
+Register a callback that runs every time the markdown content is updated in the DOM.
+
+```ts
+import { onContentUpdated } from 'vitepress'
+
+onContentUpdated(() => {
+  // Update syntax highlighting
+  // Reinitialize third-party libraries
+  // Update DOM-dependent features
+})
+```
+
+<ParamField path="callback" type="() => void" required>
+  Function to call when content is updated
+</ParamField>
+
+**Use Cases:**
+- Re-initializing syntax highlighters
+- Updating image lightboxes
+- Refreshing third-party widgets
+- Running custom DOM manipulations
+
+**Lifecycle:** The callback is automatically cleaned up when the component unmounts.
+
+---
+
+### getScrollOffset
+
+Calculates the current scroll offset based on the site configuration.
+
+```ts
+import { getScrollOffset } from 'vitepress'
+
+const offset = getScrollOffset()
+// Returns the calculated scroll offset in pixels
+```
+
+**Returns:** `number` - The scroll offset in pixels
+
+**Configuration:** Respects the `scrollOffset` option in your VitePress config:
+
+<CodeGroup>
+```ts Config - Number
+export default {
+  scrollOffset: 100 // Fixed offset
+}
+```
+
+```ts Config - Selector
+export default {
+  scrollOffset: '.navbar' // Element selector
+}
+```
+
+```ts Config - Advanced
+export default {
+  scrollOffset: {
+    selector: ['.navbar', '.announcement'],
+    padding: 24
+  }
+}
+```
+</CodeGroup>
+
+---
+
+### defineClientComponent
+
+Defines a client-only component that loads asynchronously.
+
+```ts
+import { defineClientComponent } from 'vitepress'
+
+const MyClientComponent = defineClientComponent(
+  () => import('./MyComponent.vue'),
+  [],
+  async () => {
+    // Optional callback after component loads
+    console.log('Component loaded!')
+  }
+)
+```
+
+<ParamField path="loader" type="AsyncComponentLoader" required>
+  Async function that returns the component
+</ParamField>
+
+<ParamField path="args" type="any[]">
+  Arguments to pass to the component (optional)
+</ParamField>
+
+<ParamField path="callback" type="() => Awaitable<void>">
+  Callback function to run after component loads (optional)
+</ParamField>
+
+**Returns:** Component definition that renders only on the client side
+
+**Use Cases:**
+- Loading components that use browser-only APIs
+- Deferring heavy components until after hydration
+- Integrating third-party libraries that don't support SSR
+
+---
+
+## Components
+
+### Content
+
+Renders the current page's markdown content.
+
+```vue
+<template>
+  <div class="custom-layout">
+    <Content />
+  </div>
+</template>
+
+<script setup>
+import { Content } from 'vitepress'
+</script>
+```
+
+**Props:**
+
+<ParamField path="as" type="string | Component" default="div">
+  The tag or component to render the content as
+</ParamField>
+
+**Features:**
+- Automatically renders the current route's page component
+- Triggers content updated callbacks when DOM changes
+- Displays "404 Page Not Found" when no component is available
+
+**Custom Container:**
+
+```vue
+<Content as="article" />
+<!-- Renders as <article> instead of <div> -->
+```
+
+---
+
+### ClientOnly
+
+Wrapper component that only renders its content on the client side.
+
+```vue
+<template>
+  <ClientOnly>
+    <BrowserOnlyComponent />
+  </ClientOnly>
+</template>
+
+<script setup>
+import { ClientOnly } from 'vitepress'
+import BrowserOnlyComponent from './BrowserOnlyComponent.vue'
+</script>
+```
+
+**Behavior:**
+- Content is not rendered during SSR
+- Content appears only after the page is hydrated in the browser
+- No props required
+
+**Use Cases:**
+- Components using `window`, `document`, or other browser APIs
+- Third-party widgets that don't support SSR
+- Dynamic content that should only render client-side
+
+---
+
+## Global Properties
+
+VitePress injects global properties into all Vue components:
+
+### $frontmatter
+
+Access the current page's frontmatter data.
+
+```vue
+<template>
+  <div v-if="$frontmatter.author">
+    Author: {{ $frontmatter.author }}
+  </div>
+</template>
+```
+
+**Type:** `Record<string, any>`
+
+---
+
+### $params
+
+Access dynamic route parameters for content loader pages.
+
+```vue
+<template>
+  <div>Category: {{ $params.category }}</div>
+</template>
+```
+
+**Type:** `Record<string, any>`
+
+See [Data Loading](/concepts/data-loading) for more information on dynamic routes.
+
+---
+
+## Internal Utilities
+
+These are exported but primarily for internal use:
+
+### _escapeHtml
+
+Escapes HTML special characters in a string.
+
+```ts
+import { _escapeHtml } from 'vitepress'
+
+const safe = _escapeHtml('<script>alert("xss")</script>')
+// Returns: '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;'
+```
+
+<Warning>
+This is an internal API. The underscore prefix indicates it may change without notice.
+</Warning>

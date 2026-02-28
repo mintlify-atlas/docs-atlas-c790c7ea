@@ -1,0 +1,454 @@
+---
+title: Config API
+description: Configuration resolution and helpers for VitePress
+---
+
+# Config API
+
+VitePress provides several utilities for working with configuration.
+
+## resolveConfig()
+
+Resolve the VitePress site configuration.
+
+### Function Signature
+
+```typescript
+export async function resolveConfig(
+  root?: string,
+  command?: 'serve' | 'build',
+  mode?: string
+): Promise<SiteConfig>
+```
+
+### Parameters
+
+<ParamField path="root" type="string" optional default="process.cwd()">
+  The root directory of your VitePress project containing the `.vitepress` folder.
+</ParamField>
+
+<ParamField path="command" type="'serve' | 'build'" optional default="'serve'">
+  The command being run. Affects how certain config options are resolved.
+  
+  - `'serve'` - Development server mode
+  - `'build'` - Production build mode
+</ParamField>
+
+<ParamField path="mode" type="string" optional default="'development'">
+  The mode to run in. Passed to Vite and used for environment variable loading.
+  
+  Common values: `'development'`, `'production'`, or custom modes.
+</ParamField>
+
+### Return Value
+
+<ResponseField name="SiteConfig" type="object">
+  The fully resolved site configuration object.
+  
+  <ResponseField name="root" type="string">
+    Absolute path to the project root
+  </ResponseField>
+  
+  <ResponseField name="srcDir" type="string">
+    Absolute path to the source directory
+  </ResponseField>
+  
+  <ResponseField name="outDir" type="string">
+    Absolute path to the build output directory
+  </ResponseField>
+  
+  <ResponseField name="cacheDir" type="string">
+    Absolute path to the cache directory
+  </ResponseField>
+  
+  <ResponseField name="tempDir" type="string">
+    Absolute path to the temp directory
+  </ResponseField>
+  
+  <ResponseField name="themeDir" type="string">
+    Absolute path to the theme directory
+  </ResponseField>
+  
+  <ResponseField name="site" type="SiteData">
+    Site metadata including title, description, base, etc.
+  </ResponseField>
+  
+  <ResponseField name="pages" type="string[]">
+    List of all markdown page paths
+  </ResponseField>
+  
+  <ResponseField name="markdown" type="MarkdownOptions">
+    Markdown processing options
+  </ResponseField>
+  
+  <ResponseField name="configPath" type="string | undefined">
+    Path to the config file if found
+  </ResponseField>
+  
+  <ResponseField name="configDeps" type="string[]">
+    List of config file dependencies for watching
+  </ResponseField>
+</ResponseField>
+
+### Examples
+
+#### Basic Usage
+
+```typescript
+import { resolveConfig } from 'vitepress'
+
+const config = await resolveConfig()
+console.log('Site title:', config.site.title)
+console.log('Pages:', config.pages)
+```
+
+#### Build Mode
+
+```typescript
+import { resolveConfig } from 'vitepress'
+
+const config = await resolveConfig(
+  process.cwd(),
+  'build',
+  'production'
+)
+
+console.log('Output directory:', config.outDir)
+```
+
+#### Custom Root
+
+```typescript
+import { resolveConfig } from 'vitepress'
+import path from 'path'
+
+const config = await resolveConfig(
+  path.resolve(__dirname, '../docs')
+)
+```
+
+#### Inspect Configuration
+
+```typescript
+import { resolveConfig } from 'vitepress'
+
+const config = await resolveConfig()
+
+console.log('Theme directory:', config.themeDir)
+console.log('Markdown options:', config.markdown)
+console.log('Vite config:', config.vite)
+console.log('All pages:', config.pages)
+```
+
+---
+
+## defineConfig()
+
+Type helper for defining VitePress configuration with TypeScript autocompletion.
+
+### Function Signature
+
+```typescript
+export function defineConfig<ThemeConfig = DefaultTheme.Config>(
+  config: UserConfig<NoInfer<ThemeConfig>>
+): UserConfig<ThemeConfig>
+```
+
+### Type Parameters
+
+<ParamField path="ThemeConfig" type="type" optional default="DefaultTheme.Config">
+  The type of your theme configuration. Use this when you have a custom theme with its own config type.
+</ParamField>
+
+### Parameters
+
+<ParamField path="config" type="UserConfig<ThemeConfig>">
+  Your VitePress configuration object.
+</ParamField>
+
+### Examples
+
+#### Basic Configuration
+
+```typescript
+// .vitepress/config.ts
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  title: 'My Docs',
+  description: 'Documentation site',
+  themeConfig: {
+    nav: [
+      { text: 'Home', link: '/' },
+      { text: 'Guide', link: '/guide/' }
+    ]
+  }
+})
+```
+
+#### Custom Theme Config
+
+```typescript
+// .vitepress/config.ts
+import { defineConfig } from 'vitepress'
+import type { ThemeConfig } from './theme/types'
+
+export default defineConfig<ThemeConfig>({
+  title: 'My Docs',
+  themeConfig: {
+    // TypeScript will now provide autocomplete for your custom theme config
+    customOption: 'value',
+    anotherOption: true
+  }
+})
+```
+
+#### With All Options
+
+```typescript
+// .vitepress/config.ts
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  lang: 'en-US',
+  title: 'VitePress',
+  description: 'Vite & Vue powered static site generator',
+  
+  base: '/docs/',
+  srcDir: './src',
+  outDir: './dist',
+  cacheDir: './.vitepress/cache',
+  
+  markdown: {
+    theme: 'material-theme-palenight',
+    lineNumbers: true
+  },
+  
+  themeConfig: {
+    nav: [...],
+    sidebar: {...}
+  },
+  
+  vite: {
+    // Vite config options
+  }
+})
+```
+
+---
+
+## defineAdditionalConfig()
+
+Type helper for defining additional/locale-specific configuration.
+
+### Function Signature
+
+```typescript
+export function defineAdditionalConfig<ThemeConfig = DefaultTheme.Config>(
+  config: AdditionalConfig<NoInfer<ThemeConfig>>
+): AdditionalConfig<ThemeConfig>
+```
+
+### Examples
+
+```typescript
+// docs/zh/config.ts
+import { defineAdditionalConfig } from 'vitepress'
+
+export default defineAdditionalConfig({
+  lang: 'zh-CN',
+  title: '我的文档',
+  description: '文档站点',
+  themeConfig: {
+    // Chinese-specific theme config
+  }
+})
+```
+
+---
+
+## mergeConfig()
+
+Merge two VitePress configurations.
+
+### Function Signature
+
+```typescript
+export function mergeConfig(
+  a: UserConfig,
+  b: UserConfig,
+  isRoot?: boolean
+): UserConfig
+```
+
+### Parameters
+
+<ParamField path="a" type="UserConfig">
+  Base configuration
+</ParamField>
+
+<ParamField path="b" type="UserConfig">
+  Configuration to merge on top of base
+</ParamField>
+
+<ParamField path="isRoot" type="boolean" optional default="true">
+  Whether this is a root-level merge. Affects how Vite config is merged.
+</ParamField>
+
+### Examples
+
+```typescript
+import { mergeConfig, defineConfig } from 'vitepress'
+
+const baseConfig = defineConfig({
+  title: 'Base Title',
+  themeConfig: {
+    nav: [{ text: 'Home', link: '/' }]
+  }
+})
+
+const extendedConfig = defineConfig({
+  description: 'Extended description',
+  themeConfig: {
+    nav: [{ text: 'About', link: '/about' }]
+  }
+})
+
+const merged = mergeConfig(baseConfig, extendedConfig)
+// Result:
+// {
+//   title: 'Base Title',
+//   description: 'Extended description',
+//   themeConfig: {
+//     nav: [
+//       { text: 'Home', link: '/' },
+//       { text: 'About', link: '/about' }
+//     ]
+//   }
+// }
+```
+
+---
+
+## resolveUserConfig()
+
+Resolve raw user configuration from config files.
+
+### Function Signature
+
+```typescript
+export async function resolveUserConfig(
+  root: string,
+  command: 'serve' | 'build',
+  mode: string
+): Promise<[UserConfig, configPath: string | undefined, configDeps: string[]]>
+```
+
+### Return Value
+
+Returns a tuple containing:
+1. Resolved user configuration
+2. Path to the config file (if found)
+3. Array of config file dependencies
+
+### Examples
+
+```typescript
+import { resolveUserConfig } from 'vitepress'
+
+const [config, configPath, deps] = await resolveUserConfig(
+  process.cwd(),
+  'build',
+  'production'
+)
+
+console.log('Config file:', configPath)
+console.log('Dependencies:', deps)
+console.log('User config:', config)
+```
+
+---
+
+## resolveSiteData()
+
+Resolve site metadata from configuration.
+
+### Function Signature
+
+```typescript
+export async function resolveSiteData(
+  root: string,
+  userConfig?: UserConfig,
+  command?: 'serve' | 'build',
+  mode?: string
+): Promise<SiteData>
+```
+
+### Examples
+
+```typescript
+import { resolveSiteData } from 'vitepress'
+
+const siteData = await resolveSiteData(process.cwd())
+
+console.log('Title:', siteData.title)
+console.log('Description:', siteData.description)
+console.log('Base:', siteData.base)
+console.log('Theme config:', siteData.themeConfig)
+```
+
+---
+
+## createServer()
+
+Create a Vite development server for VitePress.
+
+### Function Signature
+
+```typescript
+export async function createServer(
+  root?: string,
+  serverOptions?: ServerOptions & { base?: string },
+  restartServer?: () => Promise<void>,
+  config?: SiteConfig
+): Promise<ViteDevServer>
+```
+
+### Parameters
+
+<ParamField path="root" type="string" optional default="process.cwd()">
+  Project root directory
+</ParamField>
+
+<ParamField path="serverOptions" type="ServerOptions & { base?: string }" optional>
+  Vite server options plus optional base path override
+</ParamField>
+
+<ParamField path="restartServer" type="() => Promise<void>" optional>
+  Callback function to restart the server
+</ParamField>
+
+<ParamField path="config" type="SiteConfig" optional>
+  Pre-resolved site config (skips config resolution if provided)
+</ParamField>
+
+### Examples
+
+```typescript
+import { createServer } from 'vitepress'
+
+const server = await createServer(process.cwd(), {
+  port: 3000,
+  open: true
+})
+
+await server.listen()
+console.log('Dev server running at', server.resolvedUrls?.local[0])
+```
+
+## Related
+
+- [Configuration Reference](/api/site-config) - All config options
+- [Default Theme Config](/api/theme-config) - Theme configuration
+- [build()](/api/node/build) - Build API
+- [serve()](/api/node/serve) - Preview server API

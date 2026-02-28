@@ -1,0 +1,454 @@
+---
+title: Dynamic Routes
+description: Generate pages dynamically with parameterized routes in VitePress
+---
+
+# Dynamic Routes
+
+VitePress supports dynamic route generation, allowing you to create multiple pages from a single template with different parameters.
+
+## Basic Concept
+
+Dynamic routes use **path parameters** in square brackets (e.g., `[id].md`) to generate multiple pages from one template.
+
+<Steps>
+  <Step title="Create a dynamic route file">
+    Create `posts/[id].md`:
+    ```md
+    ---
+    title: Post
+    ---
+
+    # Post: {{ $params.id }}
+
+    Content for {{ $params.id }}
+    ```
+  </Step>
+
+  <Step title="Create a paths loader">
+    Create `posts/[id].paths.js` or `.ts`:
+    ```js
+    export default {
+      paths() {
+        return [
+          { params: { id: 'hello' } },
+          { params: { id: 'world' } }
+        ]
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Generated pages">
+    VitePress generates:
+    - `posts/hello.html`
+    - `posts/world.html`
+  </Step>
+</Steps>
+
+## Path Loader Files
+
+### Naming Convention
+
+For a dynamic route `[param].md`, create a corresponding paths file:
+
+- `[param].paths.js`
+- `[param].paths.ts`
+- `[param].paths.mjs`
+- `[param].paths.mts`
+
+### defineRoutes Helper
+
+Use `defineRoutes` for type inference:
+
+```ts posts/[id].paths.ts
+import { defineRoutes } from 'vitepress'
+
+export default defineRoutes({
+  paths() {
+    return [
+      { params: { id: '1' } },
+      { params: { id: '2' } }
+    ]
+  }
+})
+```
+
+Reference: `/home/daytona/workspace/source/src/node/plugins/dynamicRoutesPlugin.ts:70`
+
+```ts
+export function defineRoutes(loader: RouteModule): RouteModule {
+  return loader
+}
+```
+
+## Path Configuration
+
+### UserRouteConfig Interface
+
+Reference: `/home/daytona/workspace/source/src/node/plugins/dynamicRoutesPlugin.ts:19`
+
+```ts
+interface UserRouteConfig {
+  params: Record<string, string>
+  content?: string
+}
+```
+
+### Basic Paths
+
+```js
+export default {
+  paths() {
+    return [
+      { params: { id: 'hello', lang: 'en' } },
+      { params: { id: 'world', lang: 'zh' } }
+    ]
+  }
+}
+```
+
+### Async Paths
+
+Fetch data from APIs:
+
+```js
+export default {
+  async paths() {
+    const response = await fetch('https://api.example.com/posts')
+    const posts = await response.json()
+
+    return posts.map(post => ({
+      params: {
+        id: post.id,
+        slug: post.slug
+      }
+    }))
+  }
+}
+```
+
+## Watching Files
+
+Use the `watch` option to regenerate routes when files change:
+
+```js posts/[id].paths.js
+import fs from 'fs'
+import { parse } from 'yaml'
+
+export default {
+  watch: ['./posts/*.yaml'],
+  paths(watchedFiles) {
+    return watchedFiles.map(file => {
+      const content = fs.readFileSync(file, 'utf-8')
+      const data = parse(content)
+      return {
+        params: {
+          id: data.id,
+          title: data.title
+        }
+      }
+    })
+  }
+}
+```
+
+Reference: `/home/daytona/workspace/source/src/node/plugins/dynamicRoutesPlugin.ts:44`
+
+```ts
+export interface RouteModule {
+  watch?: string[] | string
+  paths:
+    | UserRouteConfig[]
+    | ((watchedFiles: string[]) => Awaitable<UserRouteConfig[]>)
+  transformPageData?: UserConfig['transformPageData']
+  options?: { globOptions?: GlobOptions }
+}
+```
+
+### Watch Patterns
+
+Supports glob patterns:
+
+```js
+{
+  watch: [
+    './data/*.json',
+    './posts/**/*.md',
+    'config.yaml'
+  ],
+  paths(watchedFiles) {
+    // watchedFiles contains absolute paths of matched files
+  }
+}
+```
+
+## Accessing Parameters
+
+### In Markdown
+
+Access params via `$params`:
+
+```md
+# {{ $params.title }}
+
+Author: {{ $params.author }}
+```
+
+### In Vue Components
+
+Use `useData()` composable:
+
+```vue
+<script setup>
+import { useData } from 'vitepress'
+
+const { params } = useData()
+</script>
+
+<template>
+  <h1>{{ params.title }}</h1>
+  <p>ID: {{ params.id }}</p>
+</template>
+```
+
+Reference: `/home/daytona/workspace/source/src/client/app/data.ts:102`
+
+```ts
+export function useData<T = any>(): VitePressData<T> {
+  const data = inject(dataSymbol)
+  if (!data) {
+    throw new Error('vitepress data not properly injected in app')
+  }
+  return data
+}
+```
+
+## Content Injection
+
+### Dynamic Content
+
+Inject content dynamically using the `content` field:
+
+```js posts/[id].paths.js
+import fs from 'fs'
+
+export default {
+  watch: ['./posts/*.md'],
+  paths(watchedFiles) {
+    return watchedFiles.map(file => {
+      const content = fs.readFileSync(file, 'utf-8')
+      const id = file.match(/\/(\w+)\.md$/)[1]
+
+      return {
+        params: { id },
+        content: content  // Inject raw content
+      }
+    })
+  }
+}
+```
+
+### Content Marker
+
+Use `<!-- @content -->` in your template:
+
+```md posts/[id].md
+---
+title: Blog Post
+---
+
+# {{ $params.title }}
+
+<!-- @content -->
+```
+
+Reference: `/home/daytona/workspace/source/src/node/plugins/dynamicRoutesPlugin.ts:162`
+
+```ts
+if (content) {
+  baseContent = baseContent.replace(
+    /<!--\s*@content\s*-->/,
+    content.replace(/\$/g, '$$$')
+  )
+}
+```
+
+<Note>
+Content injection is designed for CMS integration, rendering content as static local content instead of runtime data.
+</Note>
+
+## Page Data Transformation
+
+Transform page data for specific routes:
+
+```ts posts/[id].paths.ts
+import { defineRoutes } from 'vitepress'
+import type { PageData } from 'vitepress'
+
+export default defineRoutes({
+  paths() {
+    return [
+      { params: { id: 'hello' } },
+      { params: { id: 'world' } }
+    ]
+  },
+  transformPageData(pageData: PageData) {
+    // Transform page data
+    pageData.title = `Post: ${pageData.params.id}`
+    pageData.description = `Description for ${pageData.params.id}`
+  }
+})
+```
+
+## Multiple Parameters
+
+Use multiple parameters in file paths:
+
+### Example: [lang]/[category]/[id].md
+
+```md docs/[lang]/[category]/[id].md
+# {{ $params.lang }} - {{ $params.category }}
+
+{{ $params.id }}
+```
+
+### Paths Loader
+
+```js docs/[lang]/[category]/[id].paths.js
+export default {
+  paths() {
+    const routes = []
+    const langs = ['en', 'zh']
+    const categories = ['guide', 'api']
+    const ids = ['intro', 'advanced']
+
+    langs.forEach(lang => {
+      categories.forEach(category => {
+        ids.forEach(id => {
+          routes.push({
+            params: { lang, category, id }
+          })
+        })
+      })
+    })
+
+    return routes
+  }
+}
+```
+
+Generates:
+- `docs/en/guide/intro.html`
+- `docs/en/guide/advanced.html`
+- `docs/en/api/intro.html`
+- etc.
+
+## Advanced Example: Blog with Data
+
+<CodeGroup>
+```ts blog/[slug].paths.ts
+import { defineRoutes } from 'vitepress'
+import fs from 'fs'
+import path from 'path'
+import matter from 'gray-matter'
+
+interface Post {
+  slug: string
+  title: string
+  date: string
+  author: string
+}
+
+export default defineRoutes({
+  watch: ['./posts/*.md'],
+  paths(watchedFiles) {
+    return watchedFiles.map(file => {
+      const content = fs.readFileSync(file, 'utf-8')
+      const { data, content: markdown } = matter(content)
+      const slug = path.basename(file, '.md')
+
+      return {
+        params: {
+          slug,
+          title: data.title,
+          date: data.date,
+          author: data.author
+        },
+        content: markdown
+      }
+    })
+  },
+  transformPageData(pageData) {
+    pageData.frontmatter.date = pageData.params.date
+    pageData.frontmatter.author = pageData.params.author
+  }
+})
+```
+
+```md blog/[slug].md
+---
+layout: post
+---
+
+# {{ $params.title }}
+
+<div class="meta">
+  <span>By {{ $params.author }}</span>
+  <span>{{ $params.date }}</span>
+</div>
+
+<!-- @content -->
+```
+</CodeGroup>
+
+## Hot Module Replacement
+
+Dynamic routes support HMR:
+
+- Changes to `.paths.js` trigger route regeneration
+- Changes to watched files update affected routes
+- Changes to the template update all generated pages
+
+Reference: `/home/daytona/workspace/source/src/node/plugins/dynamicRoutesPlugin.ts:186`
+
+```ts
+if (
+  route.watch?.length &&
+  pm(route.watch, route.options.globOptions)(normalizedFile)
+) {
+  route.routes = undefined
+  watchedFileChanged = true
+  modules.push(...getModules(file, this.environment.moduleGraph, false))
+}
+```
+
+## Performance
+
+<Accordion title="Route Caching">
+  Routes are cached after first load. Cache is invalidated when:
+  - The paths loader file changes
+  - Watched files change
+  - Dependencies change
+</Accordion>
+
+<Accordion title="Concurrent Processing">
+  Multiple dynamic routes are resolved concurrently for faster builds.
+</Accordion>
+
+<Accordion title="Build Optimization">
+  ```js .vitepress/config.js
+  export default {
+    buildConcurrency: 8  // Adjust based on CPU cores
+  }
+  ```
+</Accordion>
+
+## Troubleshooting
+
+<Warning>
+If you see "Missing paths file for dynamic route" warnings, ensure:
+- The `.paths.js` file exists alongside the `.md` file
+- The file names match exactly (e.g., `[id].md` → `[id].paths.js`)
+- The file exports a default object with a `paths` property
+</Warning>

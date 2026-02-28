@@ -1,0 +1,636 @@
+---
+title: Internationalization (i18n)
+description: Configure multi-language support in VitePress with localized content, navigation, and automatic language detection.
+---
+
+# Internationalization
+
+VitePress has built-in support for creating multilingual documentation sites with locale-specific configuration and content.
+
+## Directory Structure
+
+Organize content by language using locale-based directories:
+
+<Tabs>
+  <Tab title="Root Default">
+    ```
+    docs/
+    ├─ guide/
+    │  └─ index.md
+    ├─ es/
+    │  └─ guide/
+    │     └─ index.md
+    └─ fr/
+       └─ guide/
+          └─ index.md
+    ```
+    
+    - Root is the default locale (e.g., English)
+    - Subdirectories for other languages
+  </Tab>
+  
+  <Tab title="Separate Directories">
+    ```
+    docs/
+    ├─ en/
+    │  └─ guide/
+    │     └─ index.md
+    ├─ es/
+    │  └─ guide/
+    │     └─ index.md
+    └─ fr/
+       └─ guide/
+          └─ index.md
+    ```
+    
+    - All languages in separate directories
+    - Requires server-side redirect configuration
+  </Tab>
+</Tabs>
+
+## Basic Configuration
+
+Configure locales in your VitePress config:
+
+```typescript
+// .vitepress/config.ts
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  locales: {
+    root: {
+      label: 'English',
+      lang: 'en'
+    },
+    fr: {
+      label: 'Français',
+      lang: 'fr',
+      link: '/fr/'
+    },
+    es: {
+      label: 'Español',
+      lang: 'es',
+      link: '/es/'
+    }
+  }
+})
+```
+
+<Note>
+The `lang` attribute is added to the `<html>` tag for proper language detection by browsers and screen readers.
+</Note>
+
+## Locale-Specific Configuration
+
+Override site configuration per locale:
+
+<Steps>
+  <Step title="Title and Description">
+    ```typescript
+    export default defineConfig({
+      locales: {
+        root: {
+          label: 'English',
+          lang: 'en',
+          title: 'VitePress',
+          description: 'Vite & Vue powered static site generator'
+        },
+        es: {
+          label: 'Español',
+          lang: 'es',
+          title: 'VitePress',
+          description: 'Generador de sitios estáticos con Vite y Vue'
+        }
+      }
+    })
+    ```
+  </Step>
+  
+  <Step title="Theme Configuration">
+    ```typescript
+    export default defineConfig({
+      locales: {
+        root: {
+          label: 'English',
+          themeConfig: {
+            nav: [
+              { text: 'Guide', link: '/guide/' },
+              { text: 'API', link: '/api/' }
+            ],
+            sidebar: {
+              '/guide/': [
+                { text: 'Introduction', link: '/guide/' }
+              ]
+            }
+          }
+        },
+        es: {
+          label: 'Español',
+          themeConfig: {
+            nav: [
+              { text: 'Guía', link: '/es/guide/' },
+              { text: 'API', link: '/es/api/' }
+            ],
+            sidebar: {
+              '/es/guide/': [
+                { text: 'Introducción', link: '/es/guide/' }
+              ]
+            }
+          }
+        }
+      }
+    })
+    ```
+  </Step>
+  
+  <Step title="Custom Head Tags">
+    ```typescript
+    export default defineConfig({
+      locales: {
+        root: {
+          label: 'English',
+          head: [
+            ['link', { rel: 'alternate', hreflang: 'es', href: 'https://example.com/es/' }],
+            ['link', { rel: 'alternate', hreflang: 'fr', href: 'https://example.com/fr/' }]
+          ]
+        }
+      }
+    })
+    ```
+  </Step>
+</Steps>
+
+## Configurable Properties
+
+These properties can be overridden per locale:
+
+```typescript
+interface LocaleSpecificConfig<ThemeConfig = any> {
+  lang?: string
+  dir?: string
+  title?: string
+  titleTemplate?: string | boolean
+  description?: string
+  head?: HeadConfig[]
+  themeConfig?: ThemeConfig
+}
+```
+
+<Accordion title="Property Details">
+- **lang**: HTML language attribute (e.g., `'en'`, `'es'`, `'zh-CN'`)
+- **dir**: Text direction (`'ltr'` or `'rtl'`)
+- **title**: Site title for this locale
+- **titleTemplate**: Title format template
+- **description**: Meta description
+- **head**: Additional head tags (merged with global head)
+- **themeConfig**: Theme configuration (shallow merged with global config)
+</Accordion>
+
+<Warning>
+Don't override `themeConfig.algolia` or `themeConfig.carbonAds` at the locale level. See [Algolia i18n docs](https://docsearch.algolia.com/docs/DocSearch-v3#multi-language-support) for search localization.
+</Warning>
+
+## Separate Directory Setup
+
+When using separate directories for all locales, configure server redirects.
+
+### Netlify Example
+
+Create `docs/public/_redirects`:
+
+```
+/*  /es/:splat  302  Language=es
+/*  /fr/:splat  302  Language=fr
+/*  /en/:splat  302
+```
+
+### Using Language Cookie
+
+Persist language choice with a cookie:
+
+<CodeGroup>
+```typescript Theme Config
+// .vitepress/theme/index.ts
+import DefaultTheme from 'vitepress/theme'
+import Layout from './Layout.vue'
+
+export default {
+  extends: DefaultTheme,
+  Layout
+}
+```
+
+```vue Layout Component
+<script setup lang="ts">
+import DefaultTheme from 'vitepress/theme'
+import { useData, inBrowser } from 'vitepress'
+import { watchEffect } from 'vue'
+
+const { lang } = useData()
+
+watchEffect(() => {
+  if (inBrowser) {
+    document.cookie = `nf_lang=${lang.value}; expires=Mon, 1 Jan 2030 00:00:00 UTC; path=/`
+  }
+})
+</script>
+
+<template>
+  <DefaultTheme.Layout />
+</template>
+```
+</CodeGroup>
+
+<Tip>
+This works with Netlify's Language-based redirects using the `nf_lang` cookie.
+</Tip>
+
+## Default Theme Localization
+
+The default theme includes built-in text labels that can be localized:
+
+```typescript
+export default defineConfig({
+  locales: {
+    es: {
+      label: 'Español',
+      lang: 'es',
+      themeConfig: {
+        // Navigation
+        nav: [...],
+        sidebar: {...},
+        
+        // Text labels
+        outlineTitle: 'En esta página',
+        lastUpdatedText: 'Última actualización',
+        docFooter: {
+          prev: 'Página anterior',
+          next: 'Próxima página'
+        },
+        
+        // Search
+        darkModeSwitchLabel: 'Apariencia',
+        lightModeSwitchTitle: 'Cambiar a modo claro',
+        darkModeSwitchTitle: 'Cambiar a modo oscuro',
+        sidebarMenuLabel: 'Menú',
+        returnToTopLabel: 'Volver arriba',
+        
+        // Edit link
+        editLink: {
+          pattern: 'https://github.com/user/repo/edit/main/docs/:path',
+          text: 'Editar esta página en GitHub'
+        }
+      }
+    }
+  }
+})
+```
+
+<Note>
+See the VitePress docs configuration for real examples: `docs/.vitepress/config.ts` in the source repository.
+</Note>
+
+## RTL (Right-to-Left) Support
+
+For RTL languages like Arabic or Hebrew:
+
+<Steps>
+  <Step title="Set Direction">
+    ```typescript
+    export default defineConfig({
+      locales: {
+        ar: {
+          label: 'العربية',
+          lang: 'ar',
+          dir: 'rtl'
+        }
+      }
+    })
+    ```
+  </Step>
+  
+  <Step title="Install PostCSS Plugin">
+    Choose an RTL CSS plugin:
+    
+    - [rtlcss](https://github.com/MohammadYounes/rtlcss)
+    - [postcss-rtl](https://github.com/vkalinichev/postcss-rtl)
+    - [postcss-rtlcss](https://github.com/elchininet/postcss-rtlcss)
+    
+    ```bash
+    npm add -D postcss-rtlcss
+    ```
+  </Step>
+  
+  <Step title="Configure PostCSS">
+    ```javascript
+    // postcss.config.js
+    import rtlcss from 'postcss-rtlcss'
+    
+    export default {
+      plugins: [
+        rtlcss({
+          ltrPrefix: ':where([dir="ltr"])',
+          rtlPrefix: ':where([dir="rtl"])'
+        })
+      ]
+    }
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+RTL support is experimental. Test thoroughly and use `:where()` selectors to prevent CSS specificity issues.
+</Warning>
+
+## Organizing Multi-Locale Config
+
+For better organization, split configuration by locale:
+
+```typescript
+// .vitepress/config/index.ts
+import { defineConfig } from 'vitepress'
+import { en } from './en'
+import { es } from './es'
+import { fr } from './fr'
+
+export default defineConfig({
+  // Shared config
+  title: 'VitePress',
+  base: '/',
+  
+  locales: {
+    root: { label: 'English', ...en },
+    es: { label: 'Español', ...es },
+    fr: { label: 'Français', ...fr }
+  }
+})
+```
+
+```typescript
+// .vitepress/config/en.ts
+import type { DefaultTheme, LocaleSpecificConfig } from 'vitepress'
+
+export const en: LocaleSpecificConfig<DefaultTheme.Config> = {
+  lang: 'en',
+  title: 'VitePress',
+  description: 'Vite & Vue powered static site generator',
+  
+  themeConfig: {
+    nav: [
+      { text: 'Guide', link: '/guide/' },
+      { text: 'API', link: '/api/' }
+    ],
+    sidebar: {
+      '/guide/': [
+        {
+          text: 'Introduction',
+          items: [
+            { text: 'What is VitePress?', link: '/guide/what-is-vitepress' },
+            { text: 'Getting Started', link: '/quickstart' }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+```typescript
+// .vitepress/config/es.ts
+import type { DefaultTheme, LocaleSpecificConfig } from 'vitepress'
+
+export const es: LocaleSpecificConfig<DefaultTheme.Config> = {
+  lang: 'es',
+  title: 'VitePress',
+  description: 'Generador de sitios estáticos con Vite y Vue',
+  
+  themeConfig: {
+    nav: [
+      { text: 'Guía', link: '/es/guide/' },
+      { text: 'API', link: '/es/api/' }
+    ],
+    sidebar: {
+      '/es/guide/': [
+        {
+          text: 'Introducción',
+          items: [
+            { text: '¿Qué es VitePress?', link: '/es/guide/what-is-vitepress' },
+            { text: 'Primeros Pasos', link: '/es/quickstart' }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+## Translation Workflow
+
+<Steps>
+  <Step title="Create Source Content">
+    Write your content in the default language:
+    
+    ```
+    docs/
+    └─ guide/
+       └─ getting-started.md
+    ```
+  </Step>
+  
+  <Step title="Duplicate Structure">
+    Create the same structure for each locale:
+    
+    ```
+    docs/
+    ├─ guide/
+    │  └─ getting-started.md
+    └─ es/
+       └─ guide/
+          └─ getting-started.md
+    ```
+  </Step>
+  
+  <Step title="Translate Content">
+    Translate the content while preserving:
+    - File names (or update links accordingly)
+    - Frontmatter structure
+    - Internal link paths (add locale prefix)
+  </Step>
+  
+  <Step title="Update Configuration">
+    Add locale-specific navigation and sidebar
+  </Step>
+</Steps>
+
+## Best Practices
+
+<Accordion title="Maintain Consistent Structure">
+Keep the same file structure across all locales for easier maintenance:
+
+```
+✅ Good
+docs/
+├─ guide/
+│  ├─ index.md
+│  └─ advanced.md
+└─ es/
+   └─ guide/
+      ├─ index.md
+      └─ advanced.md
+
+❌ Inconsistent
+docs/
+├─ guide/
+│  └─ index.md
+└─ es/
+   └─ guia/  # Different directory name
+      └─ inicio.md  # Different file name
+```
+</Accordion>
+
+<Accordion title="Use Translation Keys">
+For dynamic content, consider using a translation key system:
+
+```typescript
+// .vitepress/theme/translations.ts
+export const translations = {
+  en: {
+    readMore: 'Read more',
+    publishedOn: 'Published on'
+  },
+  es: {
+    readMore: 'Leer más',
+    publishedOn: 'Publicado el'
+  }
+}
+```
+</Accordion>
+
+<Accordion title="Test All Locales">
+Ensure all locales build successfully:
+
+```bash
+vitepress build docs
+```
+
+Check for:
+- Broken internal links
+- Missing translations
+- Layout issues with longer text
+- RTL rendering (if applicable)
+</Accordion>
+
+## Language Selector
+
+The default theme automatically adds a language selector to the navigation when multiple locales are configured.
+
+### Customizing the Selector
+
+Control the selector appearance:
+
+```typescript
+export default defineConfig({
+  locales: {
+    root: {
+      label: 'English',
+      lang: 'en'
+    },
+    es: {
+      label: 'Español',
+      lang: 'es',
+      link: '/es/'  // Shows in language menu
+    }
+  },
+  
+  themeConfig: {
+    // Optional: customize selector text
+    langMenuLabel: 'Change language'
+  }
+})
+```
+
+## Accessing Current Locale
+
+In Vue components, access the current locale:
+
+```vue
+<script setup>
+import { useData } from 'vitepress'
+
+const { lang, localeIndex } = useData()
+
+console.log(lang.value) // 'en', 'es', etc.
+console.log(localeIndex.value) // 'root', 'es', etc.
+</script>
+
+<template>
+  <div>
+    Current language: {{ lang }}
+  </div>
+</template>
+```
+
+## SEO Considerations
+
+<Steps>
+  <Step title="hreflang Tags">
+    Add alternate language tags:
+    
+    ```typescript
+    export default defineConfig({
+      transformHead({ pageData }) {
+        const head: HeadConfig[] = []
+        
+        if (pageData.relativePath.startsWith('es/')) {
+          head.push(['link', { 
+            rel: 'alternate', 
+            hreflang: 'en', 
+            href: `https://example.com/${pageData.relativePath.replace('es/', '')}` 
+          }])
+        }
+        
+        return head
+      }
+    })
+    ```
+  </Step>
+  
+  <Step title="Canonical URLs">
+    Set canonical URLs to avoid duplicate content:
+    
+    ```yaml
+    ---
+    head:
+      - - link
+        - rel: canonical
+          href: https://example.com/guide/
+    ---
+    ```
+  </Step>
+  
+  <Step title="Sitemap">
+    Generate locale-aware sitemaps:
+    
+    ```typescript
+    export default defineConfig({
+      sitemap: {
+        hostname: 'https://example.com',
+        transformItems(items) {
+          return items.map(item => ({
+            ...item,
+            // Add locale info
+            links: [
+              { lang: 'en', url: item.url },
+              { lang: 'es', url: item.url.replace(/^(\/en)?/, '/es') }
+            ]
+          }))
+        }
+      }
+    })
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+See the official VitePress site configuration for a production example: `docs/.vitepress/config.ts`
+</Tip>

@@ -1,0 +1,395 @@
+---
+title: SSR Compatibility
+description: Handle server-side rendering and client-only code in VitePress
+---
+
+# SSR Compatibility
+
+VitePress pre-renders the application in Node.js during build, generating static HTML. This means your code must be compatible with server-side rendering (SSR).
+
+## Understanding SSR in VitePress
+
+During build, VitePress:
+
+1. Runs your code in Node.js (SSR)
+2. Calls `renderToString()` from Vue's server renderer
+3. Generates static HTML files
+4. Hydrates on the client side
+
+Reference: `/home/daytona/workspace/source/src/client/app/ssr.ts:6`
+
+```ts
+export async function render(path: string) {
+  const { app, router } = await createApp()
+  await router.go(path)
+  const ctx: SSGContext = { content: '', vpSocialIcons: new Set<string>() }
+  ctx.content = await renderToString(app, ctx)
+  return ctx
+}
+```
+
+## Browser-Only APIs
+
+### Using import.meta.env
+
+Check the environment before accessing browser APIs:
+
+```ts
+// Check if running in browser
+if (import.meta.env.DEV) {
+  // Development-only code
+}
+
+if (import.meta.env.PROD) {
+  // Production-only code
+}
+
+if (import.meta.env.SSR) {
+  // Server-side rendering
+} else {
+  // Client-side only
+}
+```
+
+### The inBrowser Helper
+
+VitePress provides an `inBrowser` constant:
+
+```ts
+import { inBrowser } from 'vitepress'
+
+if (inBrowser) {
+  // Safe to use window, document, localStorage
+  window.addEventListener('scroll', handleScroll)
+}
+```
+
+Reference: `/home/daytona/workspace/source/src/shared/shared.ts:35`
+
+```ts
+export const inBrowser = typeof document !== 'undefined'
+```
+
+## Client-Only Components
+
+### Using ClientOnly Component
+
+Wrap components that rely on browser APIs:
+
+```vue
+<script setup>
+import { ClientOnly } from 'vitepress'
+import BrowserOnlyComponent from './BrowserOnlyComponent.vue'
+</script>
+
+<template>
+  <ClientOnly>
+    <BrowserOnlyComponent />
+  </ClientOnly>
+</template>
+```
+
+### How ClientOnly Works
+
+Reference: `/home/daytona/workspace/source/src/client/app/components/ClientOnly.ts:1`
+
+```ts
+import { defineComponent, onMounted, ref } from 'vue'
+
+export const ClientOnly = defineComponent({
+  setup(_, { slots }) {
+    const show = ref(false)
+
+    onMounted(() => {
+      show.value = true
+    })
+
+    return () => (show.value && slots.default ? slots.default() : null)
+  }
+})
+```
+
+<Note>
+`ClientOnly` renders nothing during SSR and only renders content after the component is mounted on the client.
+</Note>
+
+## Async Component Loading
+
+Load components dynamically on the client:
+
+```ts
+import { defineClientComponent } from 'vitepress'
+
+export default {
+  components: {
+    Chart: defineClientComponent(() => import('./Chart.vue'))
+  }
+}
+```
+
+### defineClientComponent API
+
+Reference: `/home/daytona/workspace/source/src/client/app/utils.ts:84`
+
+```ts
+export function defineClientComponent(
+  loader: AsyncComponentLoader,
+  args?: any[],
+  cb?: () => Awaitable<void>
+) {
+  return {
+    setup() {
+      const comp = shallowRef()
+      onMounted(async () => {
+        let res = await loader()
+        // interop module default
+        if (res && (res.__esModule || res[Symbol.toStringTag] === 'Module')) {
+          res = res.default
+        }
+        comp.value = res
+        await cb?.()
+      })
+      return () => (comp.value ? h(comp.value, ...(args ?? [])) : null)
+    }
+  }
+}
+```
+
+## Lifecycle Hooks
+
+<Steps>
+  <Step title="Avoid beforeMount and mounted during SSR">
+    These hooks only run on the client:
+    ```vue
+    <script setup>
+    import { onMounted } from 'vue'
+
+    onMounted(() => {
+      // Safe - only runs in browser
+      document.title = 'My Page'
+    })
+    </script>
+    ```
+  </Step>
+
+  <Step title="Be careful with setup()">
+    `setup()` runs on both server and client:
+    ```vue
+    <script setup>
+    import { ref } from 'vue'
+    import { inBrowser } from 'vitepress'
+
+    // Runs on both server and client
+    const count = ref(0)
+
+    // Conditional client-only code
+    if (inBrowser) {
+      count.value = parseInt(localStorage.getItem('count') || '0')
+    }
+    </script>
+    ```
+  </Step>
+</Steps>
+
+## Common SSR Issues
+
+### Accessing window/document
+
+<CodeGroup>
+```ts ❌ Wrong
+// This will crash during SSR
+const width = window.innerWidth
+```
+
+```ts ✅ Correct
+import { inBrowser } from 'vitepress'
+
+const width = inBrowser ? window.innerWidth : 0
+```
+</CodeGroup>
+
+### localStorage/sessionStorage
+
+<CodeGroup>
+```ts ❌ Wrong
+const token = localStorage.getItem('token')
+```
+
+```ts ✅ Correct
+import { inBrowser } from 'vitepress'
+
+const token = inBrowser ? localStorage.getItem('token') : null
+```
+</CodeGroup>
+
+### CSS-in-JS Libraries
+
+Many CSS-in-JS libraries need special SSR handling:
+
+```vue
+<script setup>
+import { inBrowser } from 'vitepress'
+import { onMounted } from 'vue'
+
+let styled
+
+onMounted(async () => {
+  // Load CSS-in-JS library only on client
+  styled = await import('styled-components')
+})
+</script>
+```
+
+## Router and Navigation
+
+### Safe Route Access
+
+The router is available on both server and client:
+
+```vue
+<script setup>
+import { useRoute, useRouter } from 'vitepress'
+
+const route = useRoute()
+const router = useRouter()
+
+// Safe on both server and client
+console.log(route.path)
+console.log(route.data.frontmatter)
+
+// Client-only navigation
+function navigate() {
+  router.go('/about')
+}
+</script>
+```
+
+Reference: `/home/daytona/workspace/source/src/client/app/router.ts:248`
+
+```ts
+export function useRouter(): Router {
+  const router = inject(RouterSymbol)
+  if (!router) throw new Error('useRouter() is called without provider.')
+  return router
+}
+
+export function useRoute(): Route {
+  return useRouter().route
+}
+```
+
+### Location Hash
+
+Be careful with `location.hash` during SSR:
+
+```ts
+import { inBrowser } from 'vitepress'
+
+const hash = inBrowser ? location.hash : ''
+```
+
+Or use VitePress's reactive hash:
+
+```vue
+<script setup>
+import { useData } from 'vitepress'
+
+const { hash } = useData()
+// hash.value is reactive and SSR-safe
+</script>
+```
+
+## Third-Party Libraries
+
+### Checking Library Compatibility
+
+<Warning>
+Libraries that immediately access browser APIs during import will break SSR.
+</Warning>
+
+#### Option 1: Dynamic Import
+
+```vue
+<script setup>
+import { onMounted, shallowRef } from 'vue'
+
+const lib = shallowRef()
+
+onMounted(async () => {
+  lib.value = await import('browser-only-lib')
+})
+</script>
+```
+
+#### Option 2: Conditional Import
+
+```ts
+import { inBrowser } from 'vitepress'
+
+let myLib
+if (inBrowser) {
+  myLib = await import('browser-only-lib')
+}
+```
+
+#### Option 3: Vite's SSR Externals
+
+```js .vitepress/config.js
+export default {
+  vite: {
+    ssr: {
+      noExternal: ['library-name']
+    }
+  }
+}
+```
+
+## Environment Variables
+
+VitePress exposes environment info via `import.meta.env`:
+
+```ts
+// Available in both SSR and client
+import.meta.env.MODE      // 'development' or 'production'
+import.meta.env.DEV       // boolean
+import.meta.env.PROD      // boolean
+import.meta.env.SSR       // boolean (true during SSR)
+import.meta.env.BASE_URL  // string
+```
+
+Reference: `/home/daytona/workspace/source/src/client/app/router.ts:112`
+
+```ts
+route.data = import.meta.env.PROD
+  ? markRaw(__pageData)
+  : (readonly(__pageData) as PageData)
+```
+
+## Testing SSR Compatibility
+
+<Accordion title="Build and Preview">
+  ```bash
+  npm run build
+  npm run preview
+  ```
+  Check browser console for hydration mismatches.
+</Accordion>
+
+<Accordion title="Common Error Messages">
+  - `ReferenceError: window is not defined` - Using browser API during SSR
+  - `ReferenceError: document is not defined` - Accessing DOM during SSR
+  - `Hydration mismatch` - Server and client render different content
+</Accordion>
+
+<Accordion title="Debug Mode">
+  Enable Vue's hydration mismatch details:
+  ```js .vitepress/config.js
+  export default {
+    vite: {
+      define: {
+        __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: true
+      }
+    }
+  }
+  ```
+</Accordion>

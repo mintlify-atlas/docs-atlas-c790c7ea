@@ -1,0 +1,486 @@
+---
+title: Contributing Guide
+description: How to contribute to VitePress development
+---
+
+# Contributing to VitePress
+
+We're excited that you're interested in contributing to VitePress! This guide will help you get started with contributing to the project.
+
+## Code of Conduct
+
+VitePress has adopted the same [Code of Conduct](https://github.com/vuejs/vue/blob/dev/.github/CODE_OF_CONDUCT.md) as the Vue.js project. Please read and follow it.
+
+## Ways to Contribute
+
+<CardGroup cols={2}>
+  <Card title="Report Bugs" icon="bug">
+    Help us identify and fix issues by reporting bugs you encounter.
+  </Card>
+  
+  <Card title="Suggest Features" icon="lightbulb">
+    Share ideas for new features or improvements to existing ones.
+  </Card>
+  
+  <Card title="Improve Documentation" icon="book">
+    Help make the docs better by fixing errors or adding examples.
+  </Card>
+  
+  <Card title="Submit Code" icon="code">
+    Contribute bug fixes, new features, or performance improvements.
+  </Card>
+</CardGroup>
+
+## Development Setup
+
+<Steps>
+
+### Step 1: Prerequisites
+
+Ensure you have the required tools installed:
+
+- **Node.js**: v20 or higher
+- **pnpm**: Package manager (recommended)
+
+```bash
+# Install pnpm globally
+npm install -g pnpm
+```
+
+<Note>
+VitePress uses pnpm for package management. While npm and yarn may work, pnpm is recommended for consistency.
+</Note>
+
+### Step 2: Fork and Clone
+
+1. Fork the [VitePress repository](https://github.com/vuejs/vitepress) on GitHub
+2. Clone your fork locally:
+
+```bash
+git clone https://github.com/YOUR_USERNAME/vitepress.git
+cd vitepress
+```
+
+### Step 3: Install Dependencies
+
+Install all project dependencies:
+
+```bash
+# Install dependencies
+pnpm install
+
+# Setup git hooks
+pnpm simple-git-hooks
+```
+
+The git hooks will:
+- Format code automatically on commit
+- Run linters to ensure code quality
+
+### Step 4: Start Development
+
+VitePress offers multiple development modes:
+
+#### Option 1: Docs Development (Recommended)
+
+The easiest way to test VitePress is by working on its documentation:
+
+```bash
+pnpm run docs
+```
+
+This will:
+- Start the VitePress dev environment
+- Boot up the documentation site at http://localhost:5173
+- Enable live reloading when you modify source code
+
+#### Option 2: Core Development
+
+If you don't need the docs site:
+
+```bash
+pnpm run dev
+```
+
+This starts just the VitePress development environment without the documentation server.
+
+</Steps>
+
+## Pull Request Guidelines
+
+<Steps>
+
+### Step 1: Create a Topic Branch
+
+Create a branch from `main` for your changes:
+
+```bash
+# Create and switch to a new branch
+git checkout -b feat/my-awesome-feature
+
+# Or for a bug fix
+git checkout -b fix/issue-123
+```
+
+### Step 2: Make Your Changes
+
+**For New Features:**
+
+<Warning>
+Open a suggestion issue first and get approval before working on new features. This ensures your work aligns with project goals.
+</Warning>
+
+- Provide a convincing reason for the feature
+- Ideally, wait for maintainer approval
+- Consider the impact on existing functionality
+
+**For Bug Fixes:**
+
+- Provide a detailed description of the bug
+- Include a live demo if possible
+- Reference the issue number in your PR
+
+### Step 3: Follow Code Standards
+
+Your code should:
+- Be properly formatted (automatic via git hooks)
+- Include TypeScript types where applicable
+- Follow existing code style and patterns
+- Include comments for complex logic
+
+### Step 4: Write Tests
+
+Add tests for your changes:
+
+```bash
+# Run unit tests
+pnpm test:unit
+
+# Run unit tests in watch mode
+pnpm test:unit:watch
+
+# Run e2e tests
+pnpm test:e2e
+
+# Run all tests
+pnpm test
+```
+
+### Step 5: Commit Your Changes
+
+<Warning>
+Commit messages MUST follow the [commit message convention](#commit-message-convention) for automatic changelog generation.
+</Warning>
+
+```bash
+git add .
+git commit -m "feat(theme): add new sidebar feature"
+```
+
+### Step 6: Push and Create PR
+
+```bash
+# Push your branch to your fork
+git push origin feat/my-awesome-feature
+```
+
+Then create a Pull Request on GitHub.
+
+</Steps>
+
+## Commit Message Convention
+
+VitePress follows the [Angular commit convention](https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-angular) for automated changelog generation.
+
+### Format
+
+Commit messages must match this pattern:
+
+```
+/^(revert: )?(feat|fix|docs|dx|style|refactor|perf|test|workflow|build|ci|chore|types|wip)(\(.+\))?: .{1,50}/
+```
+
+### Structure
+
+```
+<type>(<scope>): <subject>
+<BLANK LINE>
+<body>
+<BLANK LINE>
+<footer>
+```
+
+### Types
+
+<Accordion title="feat - New Feature">
+Appears under "Features" in changelog:
+
+```bash
+feat(theme): add home page feature
+```
+</Accordion>
+
+<Accordion title="fix - Bug Fix">
+Appears under "Bug Fixes" in changelog:
+
+```bash
+fix(theme): remove underline on sidebar hover style
+
+close #28
+```
+</Accordion>
+
+<Accordion title="perf - Performance Improvement">
+Appears under "Performance Improvements" in changelog:
+
+```bash
+perf: improve store getters performance by removing 'foo' option
+
+BREAKING CHANGE: The 'foo' option has been removed.
+```
+</Accordion>
+
+<Accordion title="docs - Documentation">
+Documentation changes:
+
+```bash
+docs: update migration guide for v2
+```
+</Accordion>
+
+<Accordion title="Other Types">
+Other valid types (won't appear in changelog unless they have BREAKING CHANGE):
+
+- `style`: Code style changes (formatting, semicolons, etc)
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
+- `chore`: Maintenance tasks
+- `build`: Build system changes
+- `ci`: CI configuration changes
+- `dx`: Developer experience improvements
+</Accordion>
+
+### Scope
+
+The scope specifies the area of change:
+
+- `theme`: Default theme changes
+- `client`: Client-side code
+- `build`: Build system
+- `markdown`: Markdown processing
+- `search`: Search functionality
+- etc.
+
+### Subject Guidelines
+
+- Use imperative, present tense: "change" not "changed" or "changes"
+- Don't capitalize first letter
+- No period (.) at the end
+- Keep under 50 characters
+
+### Breaking Changes
+
+If your commit includes breaking changes:
+
+```bash
+feat(config): change default theme color
+
+BREAKING CHANGE: Default theme color changed from blue to purple.
+Users need to update their custom CSS.
+```
+
+### Examples
+
+<CodeGroup>
+
+```bash Feature
+feat(theme): add dark mode toggle
+```
+
+```bash Bug Fix
+fix(search): resolve input placeholder cutoff on mobile
+
+closes #4106
+```
+
+```bash Performance
+perf: make git timestamps faster with single call
+
+BREAKING CHANGE: getTimestamp API changed to getTimestamps.
+```
+
+```bash Revert
+revert: feat(theme): add home page feature
+
+This reverts commit 667ecc1654a317a13331b17617d973392f415f02.
+```
+
+</CodeGroup>
+
+## Testing Guidelines
+
+### Unit Tests
+
+Located in `__tests__/unit/`:
+
+```bash
+# Run unit tests
+pnpm test:unit
+
+# Watch mode for development
+pnpm test:unit:watch
+```
+
+### E2E Tests
+
+Located in `__tests__/e2e/`:
+
+```bash
+# Run e2e tests in dev mode
+pnpm test:e2e-dev
+
+# Run e2e tests in build mode
+pnpm test:e2e-build
+
+# Watch mode
+pnpm test:e2e-dev:watch
+```
+
+### Init Tests
+
+Tests for the `vitepress init` command:
+
+```bash
+pnpm test:init
+```
+
+## Code Style
+
+VitePress uses Prettier for code formatting:
+
+```bash
+# Format all files
+pnpm format
+
+# Check formatting without making changes
+pnpm format:fail
+```
+
+<Note>
+Code is automatically formatted on commit via git hooks, so you usually don't need to run these manually.
+</Note>
+
+## Project Structure
+
+```bash
+vitepress/
+├── src/
+│   ├── client/        # Client-side code
+│   │   ├── app/       # Vue app
+│   │   └── theme-default/  # Default theme
+│   └── node/          # Node.js API and build logic
+├── __tests__/         # Test files
+│   ├── unit/          # Unit tests
+│   ├── e2e/           # End-to-end tests
+│   └── init/          # Init command tests
+├── docs/              # Documentation source
+│   └── .vitepress/    # Docs config
+├── scripts/           # Build and dev scripts
+└── types/             # TypeScript type definitions
+```
+
+## Development Workflow
+
+### Making a Bug Fix
+
+<Steps>
+
+1. **Find or create an issue** describing the bug
+2. **Create a branch**: `git checkout -b fix/issue-123`
+3. **Write a failing test** that reproduces the bug
+4. **Fix the bug** and ensure the test passes
+5. **Commit**: `fix: resolve issue with X`
+6. **Push and create PR**
+
+</Steps>
+
+### Adding a Feature
+
+<Steps>
+
+1. **Open a discussion** or issue proposing the feature
+2. **Wait for approval** from maintainers
+3. **Create a branch**: `git checkout -b feat/awesome-feature`
+4. **Implement the feature** with tests
+5. **Update documentation** if needed
+6. **Commit**: `feat(scope): add awesome feature`
+7. **Push and create PR**
+
+</Steps>
+
+### Improving Documentation
+
+<Steps>
+
+1. **Create a branch**: `git checkout -b docs/improve-guide`
+2. **Make changes** to markdown files in `docs/`
+3. **Test locally**: `pnpm run docs`
+4. **Commit**: `docs: improve migration guide`
+5. **Push and create PR**
+
+</Steps>
+
+## Building VitePress
+
+### Development Build
+
+```bash
+# Build with watch mode
+pnpm run dev
+```
+
+### Production Build
+
+```bash
+# Full production build
+pnpm run build
+
+# Build only client code
+pnpm run build:client
+
+# Build only node code
+pnpm run build:node
+```
+
+### Build Documentation
+
+```bash
+# Build docs site
+pnpm run docs:build
+
+# Preview built docs
+pnpm run docs:preview
+```
+
+## Getting Help
+
+If you need help contributing:
+
+- **GitHub Discussions**: [vuejs/vitepress/discussions](https://github.com/vuejs/vitepress/discussions)
+- **Discord**: [chat.vuejs.org](https://chat.vuejs.org)
+- **Issues**: Search existing issues or create a new one
+
+## Recognition
+
+All contributors are recognized in:
+- GitHub contributors list
+- Release notes for their contributions
+- The VitePress community
+
+<Note>
+Thank you for contributing to VitePress! Every contribution, no matter how small, makes a difference.
+</Note>
+
+## License
+
+By contributing to VitePress, you agree that your contributions will be licensed under its [MIT License](https://github.com/vuejs/vitepress/blob/main/LICENSE).

@@ -1,0 +1,464 @@
+---
+title: Migration Guide
+description: Guide for migrating from VitePress v1 to v2
+---
+
+# Migration Guide
+
+This guide will help you migrate your VitePress site from v1.x to v2.x (currently in alpha).
+
+## Overview
+
+VitePress v2.0 brings significant improvements including Vite 7 support, Shiki v3 integration, and performance enhancements. While most changes are backwards compatible, there are several breaking changes to be aware of.
+
+<Warning>
+VitePress v2.0 is currently in alpha (v2.0.0-alpha.16). Test thoroughly before deploying to production.
+</Warning>
+
+## Breaking Changes
+
+<Steps>
+
+### Step 1: Update Dependencies
+
+Update VitePress to v2.x in your `package.json`:
+
+```json
+{
+  "devDependencies": {
+    "vitepress": "^2.0.0-alpha.16"
+  }
+}
+```
+
+Run your package manager to install:
+
+```bash
+npm install
+# or
+pnpm install
+# or
+yarn install
+```
+
+### Step 2: Vite 7 Upgrade
+
+VitePress v2 uses Vite 7. For most users, no change is required.
+
+<Note>
+If you use third-party Vite plugins, you may encounter type mismatches. See the [Vite migration guide](https://vite.dev/guide/migration.html) for details.
+</Note>
+
+**What Changed:**
+- Vite upgraded from v5 to v7
+- Better performance and smaller bundle sizes
+- Potential plugin compatibility issues
+
+**Action Required:**
+- Review your custom Vite plugins
+- Suppress type errors with `@ts-expect-error` or `as any` if needed
+- Report issues to respective plugin repositories
+
+### Step 3: Markdown-it Async
+
+Markdown-it now uses async rendering.
+
+**What Changed:**
+- `markdown-it-async` is used instead of `markdown-it`
+- Affects custom content renderers for local search
+
+**Action Required:**
+
+If you have custom content renderer:
+
+```typescript
+// ❌ Before (v1.x)
+const html = md.render(content)
+
+// ✅ After (v2.x)
+const html = await md.renderAsync(content)
+```
+
+### Step 4: Shiki v3 Migration
+
+VitePress v2 uses Shiki v3 for syntax highlighting.
+
+**What Changed:**
+- Upgraded from Shiki v2 to v3
+- New [matching algorithm](https://shiki.style/packages/transformers#matching-algorithm) for transformers
+- Improved language lazy loading
+- Better performance
+
+**Action Required:**
+- Review custom Shiki transformers
+- Update transformer configurations if needed
+- Test syntax highlighting in your code blocks
+
+### Step 5: Configuration Updates
+
+#### CJK Emphasis Config Rename
+
+**What Changed:**
+```typescript
+// ❌ Before (v2.0.0-alpha.12 and earlier)
+export default {
+  markdown: {
+    cjkFriendly: false
+  }
+}
+
+// ✅ After (v2.0.0-alpha.13+)
+export default {
+  markdown: {
+    cjkFriendlyEmphasis: false
+  }
+}
+```
+
+**Who's Affected:**
+Only users who explicitly disabled CJK-friendly emphasis need to update.
+
+#### PostCSS Isolate Styles
+
+**What Changed:**
+- `includeFiles` now defaults to `[/vp-doc\.css/, /base\.css/]`
+- `transform` and `exclude` options removed
+
+**Action Required:**
+
+```typescript
+// If you were using:
+export default {
+  vite: {
+    css: {
+      postcss: {
+        plugins: [
+          postcssIsolateStyles({
+            includeFiles: [/vp-doc\.css/]
+          })
+        ]
+      }
+    }
+  }
+}
+
+// You can now remove explicit includeFiles:
+export default {
+  vite: {
+    css: {
+      postcss: {
+        plugins: [postcssIsolateStyles()]
+      }
+    }
+  }
+}
+```
+
+#### Glob Options Restriction
+
+**What Changed:**
+Only `cwd`, `ignore`, `dot`, and `debug` are supported in `globOptions` of `createContentLoader`.
+
+**Action Required:**
+- Remove unsupported glob options
+- Suppress type errors if needed for advanced use cases
+
+### Step 6: Code Block Changes
+
+#### Markdown-it-attrs Disabled for Code Blocks
+
+**What Changed:**
+- `markdown-it-attrs` is disabled for fenced code blocks
+- Use Shiki transformers for adding classes instead
+
+**Action Required:**
+
+```typescript
+// ❌ Before - Using markdown-it-attrs
+// ```js {.my-class}
+// code here
+// ```
+
+// ✅ After - Use Shiki transformers
+export default {
+  markdown: {
+    codeTransformers: [
+      // Add your custom transformer
+    ]
+  }
+}
+```
+
+#### CSS Class Changes
+
+**What Changed:**
+- `vp-code` class removed from code blocks
+- `vp-adaptive-theme` class no longer added for single theme
+
+**Action Required:**
+
+Update your custom CSS:
+
+```css
+/* ❌ Before */
+.vp-code {
+  /* styles */
+}
+
+/* ✅ After - Use .shiki instead */
+.shiki {
+  /* styles */
+}
+
+/* Or be more specific */
+pre.shiki {
+  /* styles */
+}
+
+[class*='language-'] pre {
+  /* styles */
+}
+```
+
+### Step 7: Theme Component Changes
+
+#### Layout Composables
+
+**What Changed:**
+- `useLocalNav` and `useSidebar` removed
+- Use `useLayout` instead
+
+**Action Required:**
+
+```typescript
+// ❌ Before
+import { useLocalNav, useSidebar } from 'vitepress/theme'
+
+const localNav = useLocalNav()
+const sidebar = useSidebar()
+
+// ✅ After
+import { useLayout } from 'vitepress/theme'
+
+const layout = useLayout()
+```
+
+#### Type Removals
+
+**What Changed:**
+- `DefaultTheme.DocSidebar` type removed
+- `DefaultTheme.DocLocalNav` type removed
+
+**Action Required:**
+- Update TypeScript imports if you were using these types
+
+### Step 8: DocSearch v4 Upgrade
+
+Algolia DocSearch upgraded to v4.
+
+**What Changed:**
+- DocSearch v4 with sidepanel support
+- AI features available in private beta
+
+**Action Required:**
+
+If you customized DocSearch styles:
+- Review navbar search button styles
+- Review modal styles
+- Test search functionality
+
+Apply for AI features: https://forms.gle/iyfb5pC2CiiwszUKA
+
+</Steps>
+
+## New Features
+
+Take advantage of these new features in v2:
+
+<CardGroup cols={2}>
+  <Card title="Vite 7 Performance" icon="bolt">
+    Faster build times and improved development experience with Vite 7.
+  </Card>
+  
+  <Card title="Shiki v3 Highlighting" icon="code">
+    Better syntax highlighting with lazy-loaded languages and improved performance.
+  </Card>
+  
+  <Card title="Async Markdown Rendering" icon="file-code">
+    More powerful markdown processing with async support.
+  </Card>
+  
+  <Card title="Enhanced DocSearch" icon="search">
+    DocSearch v4 with sidepanel and AI-powered search (beta).
+  </Card>
+</CardGroup>
+
+### CJK-Friendly Emphasis
+
+Enabled by default for better CJK language support:
+
+```typescript
+// Automatically enabled - intentionally deviates from CommonMark spec
+// for better CJK user experience
+
+// To disable:
+export default {
+  markdown: {
+    cjkFriendlyEmphasis: false
+  }
+}
+```
+
+### Distributed Config Files
+
+Support for multiple config files across your project:
+
+```typescript
+// .vitepress/config.ts (root)
+// packages/docs/.vitepress/config.ts (package-specific)
+```
+
+### Custom Display Names for Code Blocks
+
+```markdown
+```js [filename.js]
+console.log('Hello World')
+```
+```
+
+### Router Enhancements
+
+```typescript
+import { useRouter } from 'vitepress'
+
+const router = useRouter()
+
+// History replacement
+router.go('/path', { replace: true })
+
+// Same-page navigation
+router.go('#section')
+
+// Decoded hash and query
+console.log(router.route.hash)
+console.log(router.route.query)
+```
+
+## Testing Your Migration
+
+<Steps>
+
+### 1. Run Development Server
+
+```bash
+npm run docs:dev
+```
+
+Verify:
+- Site loads without errors
+- Navigation works correctly
+- Code blocks render properly
+- Search functions as expected
+
+### 2. Build Production Site
+
+```bash
+npm run docs:build
+```
+
+Check for:
+- Build completes successfully
+- No breaking errors in console
+- CSS is correctly loaded
+- All pages render
+
+### 3. Preview Production Build
+
+```bash
+npm run docs:preview
+```
+
+Test:
+- All routes work
+- Client-side navigation
+- Code syntax highlighting
+- Theme switching
+- Search functionality
+
+</Steps>
+
+## Troubleshooting
+
+<Accordion title="Type errors with third-party Vite plugins">
+Vite 7 may cause type mismatches with some plugins. Solutions:
+
+```typescript
+import somePlugin from 'some-vite-plugin'
+
+export default {
+  vite: {
+    // @ts-expect-error - Plugin types not updated for Vite 7
+    plugins: [somePlugin()]
+  }
+}
+```
+
+Or suppress with `as any` and report to plugin repository.
+</Accordion>
+
+<Accordion title="Custom CSS not applying to code blocks">
+If your code block styles aren't working:
+
+1. Replace `.vp-code` with `.shiki`
+2. Check for `vp-adaptive-theme` class usage
+3. Use `pre.shiki` or `[class*='language-'] pre` selectors
+</Accordion>
+
+<Accordion title="Search styles broken after upgrade">
+DocSearch v4 changed class names and structure:
+
+1. Review custom DocSearch CSS
+2. Update selectors for navbar search button
+3. Update modal styles
+4. Test on mobile viewports
+</Accordion>
+
+<Accordion title="Build fails with 'markdown.render is not a function'">
+This happens with custom content renderers:
+
+```typescript
+// Update to async
+const html = await md.renderAsync(content)
+```
+</Accordion>
+
+## Rollback Instructions
+
+If you need to rollback to v1.x:
+
+```json
+{
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}
+```
+
+Then run:
+
+```bash
+npm install
+# or
+pnpm install
+```
+
+## Getting Help
+
+- **Documentation**: [vitepress.dev](https://vitepress.dev)
+- **GitHub Issues**: [vuejs/vitepress/issues](https://github.com/vuejs/vitepress/issues)
+- **Discord**: [chat.vuejs.org](https://chat.vuejs.org)
+- **Changelog**: [CHANGELOG.md](https://github.com/vuejs/vitepress/blob/main/CHANGELOG.md)
+
+<Note>
+For the latest breaking changes and migration notes, always check the [official changelog](https://github.com/vuejs/vitepress/blob/main/CHANGELOG.md).
+</Note>

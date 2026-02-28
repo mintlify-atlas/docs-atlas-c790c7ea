@@ -1,0 +1,275 @@
+---
+title: Build-Time Data Loading
+description: Generate and load data at build time with VitePress data loaders
+---
+
+# Build-Time Data Loading
+
+VitePress provides powerful **data loaders** that execute at build time, allowing you to load arbitrary data and import it from pages or components. The loaded data is serialized as JSON in the final JavaScript bundle.
+
+## Basic Data Loaders
+
+Data loader files must end with `.data.js` or `.data.ts` and export a default object with a `load()` method.
+
+<CodeGroup>
+```js example.data.js
+export default {
+  load() {
+    return {
+      hello: 'world'
+    }
+  }
+}
+```
+
+```ts example.data.ts
+import { defineLoader } from 'vitepress'
+
+export interface Data {
+  hello: string
+}
+
+declare const data: Data
+export { data }
+
+export default defineLoader({
+  async load(): Promise<Data> {
+    return {
+      hello: 'world'
+    }
+  }
+})
+```
+</CodeGroup>
+
+### Importing Data
+
+Import data from loader files using the `data` named export:
+
+```vue
+<script setup>
+import { data } from './example.data.js'
+</script>
+
+<template>
+  <pre>{{ JSON.stringify(data, null, 2) }}</pre>
+</template>
+```
+
+<Note>
+The loader module is evaluated only in Node.js, so you can import Node APIs and npm dependencies freely.
+</Note>
+
+## Loading Local Files
+
+Use the `watch` option to monitor local files for changes and trigger hot updates:
+
+```js posts.data.js
+import fs from 'node:fs'
+import { parse } from 'csv-parse/sync'
+
+export default {
+  watch: ['./data/*.csv'],
+  load(watchedFiles) {
+    // watchedFiles: array of absolute paths
+    return watchedFiles.map((file) => {
+      return parse(fs.readFileSync(file, 'utf-8'), {
+        columns: true,
+        skip_empty_lines: true
+      })
+    })
+  }
+}
+```
+
+### Watch Patterns
+
+The `watch` option accepts [glob patterns](https://github.com/mrmlnc/fast-glob#pattern-syntax):
+
+- `watch: ['./data/*.csv']` - Watch all CSV files
+- `watch: ['posts/**/*.md']` - Watch markdown files recursively
+- `watch: ['data.json', 'config.yaml']` - Watch specific files
+
+## createContentLoader API
+
+For content-focused sites, VitePress provides `createContentLoader` to simplify loading markdown files:
+
+<Steps>
+  <Step title="Create a data loader">
+    ```js posts.data.js
+    import { createContentLoader } from 'vitepress'
+
+    export default createContentLoader('posts/*.md')
+    ```
+  </Step>
+
+  <Step title="Import and use the data">
+    ```vue
+    <script setup>
+    import { data as posts } from './posts.data.js'
+    </script>
+
+    <template>
+      <ul>
+        <li v-for="post of posts" :key="post.url">
+          <a :href="post.url">{{ post.frontmatter.title }}</a>
+        </li>
+      </ul>
+    </template>
+    ```
+  </Step>
+</Steps>
+
+### ContentData Interface
+
+The loaded data has the following structure:
+
+```ts
+interface ContentData {
+  // Mapped URL for the page (e.g., /posts/hello.html)
+  url: string
+  // Frontmatter data of the page
+  frontmatter: Record<string, any>
+  // Optional fields (enabled via options)
+  src?: string      // Raw markdown source
+  html?: string     // Rendered full page HTML
+  excerpt?: string  // Rendered excerpt HTML
+}
+```
+
+### Transform Options
+
+```js posts.data.js
+import { createContentLoader } from 'vitepress'
+
+export default createContentLoader('posts/*.md', {
+  includeSrc: true,   // Include raw markdown
+  render: true,       // Include rendered HTML
+  excerpt: true,      // Include excerpt
+  transform(rawData) {
+    // Sort by date
+    return rawData
+      .sort((a, b) => {
+        return +new Date(b.frontmatter.date) - +new Date(a.frontmatter.date)
+      })
+      .map((page) => ({
+        url: page.url,
+        title: page.frontmatter.title,
+        date: page.frontmatter.date,
+        excerpt: page.excerpt
+      }))
+  }
+})
+```
+
+<Warning>
+Be cautious about data size when using `includeSrc` or `render` - the data is inlined as JSON in the client bundle.
+</Warning>
+
+## Using in Build Hooks
+
+Data loaders can be used in build hooks to generate files:
+
+```js .vitepress/config.js
+import { createContentLoader } from 'vitepress'
+import { writeFileSync } from 'fs'
+import { Feed } from 'feed'
+
+export default {
+  async buildEnd(siteConfig) {
+    const posts = await createContentLoader('posts/*.md', {
+      excerpt: true,
+      render: true
+    }).load()
+
+    const feed = new Feed({
+      title: 'My Blog',
+      description: 'My blog posts',
+      link: siteConfig.site.base
+    })
+
+    posts.forEach(post => {
+      feed.addItem({
+        title: post.frontmatter.title,
+        link: `${siteConfig.site.base}${post.url}`,
+        description: post.excerpt,
+        content: post.html
+      })
+    })
+
+    writeFileSync('.vitepress/dist/feed.rss', feed.rss2())
+  }
+}
+```
+
+## Accessing Configuration
+
+Access VitePress configuration inside loaders:
+
+```ts
+import type { SiteConfig } from 'vitepress'
+
+const config: SiteConfig = (globalThis as any).VITEPRESS_CONFIG
+
+export default {
+  load() {
+    console.log(config.srcDir)
+    console.log(config.site.base)
+    return { /* ... */ }
+  }
+}
+```
+
+## Advanced Example: API Index
+
+Generate an API index from markdown files:
+
+```ts api.data.ts
+import { createContentLoader, defineLoader } from 'vitepress'
+import type { ContentData } from 'vitepress'
+
+interface APIEntry {
+  name: string
+  url: string
+  category: string
+  description: string
+}
+
+declare const data: APIEntry[]
+export { data }
+
+export default defineLoader({
+  async load() {
+    const loader = createContentLoader('api/**/*.md', {
+      transform(raw: ContentData[]): APIEntry[] {
+        return raw.map(({ url, frontmatter }) => ({
+          name: frontmatter.title,
+          url,
+          category: frontmatter.category || 'General',
+          description: frontmatter.description || ''
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+      }
+    })
+
+    return await loader.load()
+  }
+})
+```
+
+## Performance Considerations
+
+<Accordion title="Caching">
+  `createContentLoader` implements caching based on file modified timestamps to improve dev performance. Cache is automatically invalidated when files change.
+</Accordion>
+
+<Accordion title="Concurrency">
+  File loading uses concurrent processing controlled by `buildConcurrency` config option (default: CPU cores).
+</Accordion>
+
+<Accordion title="Bundle Size">
+  - Only include necessary data in `transform()`
+  - Avoid using `render: true` unless needed
+  - Filter out large fields from frontmatter
+  - Consider generating static files instead of inlining large datasets
+</Accordion>

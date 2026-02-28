@@ -1,0 +1,620 @@
+---
+title: Site Config Reference
+description: Complete reference for VitePress site-level configuration options
+---
+
+# Site Config Reference
+
+Site config defines the global settings of your VitePress site. These options apply regardless of the theme being used.
+
+## Config File
+
+The config file is resolved from `<root>/.vitepress/config.[ext]`, where `[ext]` can be `.js`, `.ts`, `.mjs`, or `.mts`.
+
+```ts
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  title: 'My Site',
+  description: 'My awesome site',
+  // ... more options
+})
+```
+
+## Site Metadata
+
+### title
+
+<ParamField path="title" type="string" default="VitePress">
+  Title for the site. When using the default theme, this will be displayed in the nav bar and used as the default suffix for all page titles.
+  
+  Can be overridden per page via frontmatter.
+</ParamField>
+
+```ts
+export default {
+  title: 'My Awesome Site'
+}
+```
+
+### titleTemplate
+
+<ParamField path="titleTemplate" type="string | boolean">
+  Allows customizing each page's title suffix or the entire title. Use `:title` as a placeholder for the page's main title.
+  
+  Set to `false` to disable title suffixes completely.
+  
+  Can be overridden per page via frontmatter.
+</ParamField>
+
+```ts
+export default {
+  titleTemplate: ':title - Custom Suffix'
+}
+```
+
+### description
+
+<ParamField path="description" type="string" default="A VitePress site">
+  Description for the site. Renders as a `<meta>` tag in the page HTML.
+  
+  Can be overridden per page via frontmatter.
+</ParamField>
+
+```ts
+export default {
+  description: 'A VitePress site powered by Vue'
+}
+```
+
+### head
+
+<ParamField path="head" type="HeadConfig[]" default="[]">
+  Additional elements to render in the `<head>` tag. User-added tags are rendered before the closing `head` tag, after VitePress tags.
+  
+  Can be appended per page via frontmatter.
+</ParamField>
+
+<Expandable title="Type Definition">
+```ts
+type HeadConfig =
+  | [string, Record<string, string>]
+  | [string, Record<string, string>, string]
+```
+</Expandable>
+
+<Tabs>
+  <Tab title="Favicon">
+    ```ts
+    export default {
+      head: [['link', { rel: 'icon', href: '/favicon.ico' }]]
+    }
+    ```
+  </Tab>
+  <Tab title="Google Fonts">
+    ```ts
+    export default {
+      head: [
+        ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+        ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
+        ['link', { href: 'https://fonts.googleapis.com/css2?family=Roboto&display=swap', rel: 'stylesheet' }]
+      ]
+    }
+    ```
+  </Tab>
+  <Tab title="Analytics">
+    ```ts
+    export default {
+      head: [
+        ['script', { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=TAG_ID' }],
+        ['script', {}, `window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'TAG_ID');`]
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### lang
+
+<ParamField path="lang" type="string" default="en-US">
+  The lang attribute for the site. Renders as `<html lang="en-US">` in the page HTML.
+</ParamField>
+
+```ts
+export default {
+  lang: 'en-US'
+}
+```
+
+### base
+
+<ParamField path="base" type="string" default="/">
+  The base URL the site will be deployed at. Required if deploying your site under a sub path (e.g., GitHub Pages).
+  
+  Must always start and end with a slash. Automatically prepended to all URLs that start with `/`.
+</ParamField>
+
+```ts
+export default {
+  base: '/my-project/'
+}
+```
+
+## Routing
+
+### cleanUrls
+
+<ParamField path="cleanUrls" type="boolean" default="false">
+  When `true`, VitePress removes trailing `.html` from URLs.
+  
+  <Warning>Requires server support to serve `/foo.html` when visiting `/foo` without a redirect.</Warning>
+</ParamField>
+
+```ts
+export default {
+  cleanUrls: true
+}
+```
+
+### rewrites
+
+<ParamField path="rewrites" type="Record<string, string> | ((id: string) => string)">
+  Defines custom directory ↔ URL mappings. Allows you to customize the structure of your URLs independently of your file structure.
+</ParamField>
+
+```ts
+export default {
+  rewrites: {
+    'source/:page': 'destination/:page'
+  }
+}
+```
+
+## Build
+
+### srcDir
+
+<ParamField path="srcDir" type="string" default=".">
+  The directory where your markdown pages are stored, relative to project root.
+</ParamField>
+
+```ts
+export default {
+  srcDir: './src'
+}
+```
+
+### srcExclude
+
+<ParamField path="srcExclude" type="string[]">
+  A glob pattern for matching markdown files that should be excluded as source content.
+</ParamField>
+
+```ts
+export default {
+  srcExclude: ['**/README.md', '**/TODO.md']
+}
+```
+
+### outDir
+
+<ParamField path="outDir" type="string" default="./.vitepress/dist">
+  The build output location for the site, relative to project root.
+</ParamField>
+
+```ts
+export default {
+  outDir: '../public'
+}
+```
+
+### assetsDir
+
+<ParamField path="assetsDir" type="string" default="assets">
+  Directory to nest generated assets under. The path should be inside `outDir` and is resolved relative to it.
+</ParamField>
+
+```ts
+export default {
+  assetsDir: 'static'
+}
+```
+
+### cacheDir
+
+<ParamField path="cacheDir" type="string" default="./.vitepress/cache">
+  The directory for cache files, relative to project root.
+</ParamField>
+
+```ts
+export default {
+  cacheDir: './.vitepress/.vite'
+}
+```
+
+### ignoreDeadLinks
+
+<ParamField path="ignoreDeadLinks" type="boolean | 'localhostLinks' | (string | RegExp | ((link: string, source: string) => boolean))[]" default="false">
+  When `true`, VitePress will not fail builds due to dead links.
+  
+  When set to `'localhostLinks'`, the build will fail on dead links but won't check `localhost` links.
+  
+  Can also be an array of exact URL strings, regex patterns, or custom filter functions.
+</ParamField>
+
+<CodeGroup>
+```ts Simple
+export default {
+  ignoreDeadLinks: true
+}
+```
+
+```ts Advanced
+export default {
+  ignoreDeadLinks: [
+    '/playground',
+    /^https?:\/\/localhost/,
+    /\/repl\//,
+    (url) => url.toLowerCase().includes('ignore')
+  ]
+}
+```
+</CodeGroup>
+
+### metaChunk
+
+<ParamField path="metaChunk" type="boolean" default="false">
+  <span className="badge badge-warning">experimental</span>
+  
+  When `true`, extract page metadata to a separate JavaScript chunk instead of inlining it in the initial HTML. Makes pages smaller and metadata cacheable.
+</ParamField>
+
+### mpa
+
+<ParamField path="mpa" type="boolean" default="false">
+  <span className="badge badge-warning">experimental</span>
+  
+  When `true`, the production app will be built in MPA Mode, shipping 0kb JavaScript by default at the cost of disabling client-side navigation.
+</ParamField>
+
+### buildConcurrency
+
+<ParamField path="buildConcurrency" type="number" default="64">
+  <span className="badge badge-warning">experimental</span>
+  
+  Configures the concurrency of the build. Lower numbers reduce memory usage but increase build time.
+</ParamField>
+
+```ts
+export default {
+  buildConcurrency: 32
+}
+```
+
+## Theming
+
+### appearance
+
+<ParamField path="appearance" type="boolean | 'dark' | 'force-dark' | 'force-auto' | UseDarkOptions" default="true">
+  Whether to enable dark mode (by adding the `.dark` class to the `<html>` element).
+  
+  - `true`: Default theme determined by user's preferred color scheme
+  - `'dark'`: Dark by default, user can toggle
+  - `false`: No dark mode support
+  - `'force-dark'`: Always dark, user cannot toggle
+  - `'force-auto'`: Always follows system preference, user cannot toggle
+  - Object: Pass VueUse `useDark` options (with `initialValue` limited to `'dark' | undefined`)
+</ParamField>
+
+```ts
+export default {
+  appearance: 'dark'
+}
+```
+
+### lastUpdated
+
+<ParamField path="lastUpdated" type="boolean" default="false">
+  Whether to get the last updated timestamp for each page using Git. The timestamp will be included in each page's data and displayed by the default theme.
+</ParamField>
+
+```ts
+export default {
+  lastUpdated: true
+}
+```
+
+### themeConfig
+
+<ParamField path="themeConfig" type="ThemeConfig">
+  Theme-specific configuration options. For the default theme, see [Theme Config Reference](/api/theme-config).
+</ParamField>
+
+## Customization
+
+### markdown
+
+<ParamField path="markdown" type="MarkdownOptions">
+  Configure Markdown parser options. VitePress uses Markdown-it as the parser and Shiki for syntax highlighting.
+</ParamField>
+
+<Expandable title="Common Options">
+```ts
+export default {
+  markdown: {
+    theme: 'github-dark',
+    lineNumbers: true,
+    math: true,
+    image: {
+      lazyLoading: true
+    },
+    codeTransformers: [
+      // Shiki transformers
+    ]
+  }
+}
+```
+
+**Key Options:**
+- `theme`: Syntax highlighting theme (string or `{ light, dark }` object)
+- `lineNumbers`: Show line numbers in code blocks
+- `languages`: Custom language support for Shiki
+- `languageAlias`: Map custom language names to existing languages
+- `defaultHighlightLang`: Fallback language when not specified
+- `math`: Enable math equations (requires `markdown-it-mathjax3`)
+- `gfmAlerts`: Enable GitHub-flavored alerts (default: `true`)
+- `cjkFriendlyEmphasis`: Support emphasis in CJK text (default: `true`)
+- `anchor`: Options for `markdown-it-anchor`
+- `attrs`: Options for `markdown-it-attrs`
+- `config`: Function to configure the markdown-it instance
+</Expandable>
+
+### vue
+
+<ParamField path="vue" type="VuePluginOptions">
+  Pass options to the internal `@vitejs/plugin-vue` instance.
+</ParamField>
+
+```ts
+export default {
+  vue: {
+    template: {
+      compilerOptions: {
+        isCustomElement: (tag) => tag.startsWith('my-')
+      }
+    }
+  }
+}
+```
+
+### vite
+
+<ParamField path="vite" type="ViteConfig">
+  Pass raw Vite config to the internal Vite dev server / bundler.
+</ParamField>
+
+```ts
+export default {
+  vite: {
+    plugins: [],
+    server: {
+      port: 3000
+    },
+    build: {
+      minify: 'terser'
+    }
+  }
+}
+```
+
+### scrollOffset
+
+<ParamField path="scrollOffset" type="number | string | string[] | { selector: string | string[]; padding: number }" default="134">
+  Configure the scroll offset when the theme has a sticky header. Can be a number, selector element, or array of selectors with fallback.
+</ParamField>
+
+```ts
+export default {
+  scrollOffset: 90
+}
+```
+
+### contentProps
+
+<ParamField path="contentProps" type="Record<string, any>">
+  Props to pass to the content component.
+</ParamField>
+
+### router
+
+<ParamField path="router" type="{ prefetchLinks?: boolean }">
+  Router configuration options.
+  
+  - `prefetchLinks`: Whether to prefetch links on hover (default: `true`)
+</ParamField>
+
+```ts
+export default {
+  router: {
+    prefetchLinks: false
+  }
+}
+```
+
+### locales
+
+<ParamField path="locales" type="LocaleConfig<ThemeConfig>">
+  Locale-specific configuration. Each locale can override any site-level option.
+</ParamField>
+
+```ts
+export default {
+  locales: {
+    root: {
+      label: 'English',
+      lang: 'en'
+    },
+    fr: {
+      label: 'French',
+      lang: 'fr',
+      title: 'Mon Site',
+      description: 'Mon site génial'
+    }
+  }
+}
+```
+
+### additionalConfig
+
+<ParamField path="additionalConfig" type="AdditionalConfigDict | AdditionalConfigLoader">
+  <span className="badge badge-warning">experimental</span>
+  
+  Multi-layer configuration overloading. Auto-resolves to `docs/.../config.{js,mjs,ts,mts}` when unspecified. Set to `{}` to opt-out.
+</ParamField>
+
+## Build Hooks
+
+### buildEnd
+
+<ParamField path="buildEnd" type="(siteConfig: SiteConfig) => Awaitable<void>">
+  Build CLI hook that runs after build (SSG) finishes but before VitePress CLI process exits.
+</ParamField>
+
+```ts
+export default {
+  async buildEnd(siteConfig) {
+    // Generate sitemap, search index, etc.
+  }
+}
+```
+
+### postRender
+
+<ParamField path="postRender" type="(context: SSGContext) => Awaitable<SSGContext | void>">
+  Build hook called when SSG rendering is done. Allows you to handle teleports content during SSG.
+</ParamField>
+
+<Expandable title="SSGContext Interface">
+```ts
+interface SSGContext {
+  content: string
+  teleports?: Record<string, string>
+  [key: string]: any
+}
+```
+</Expandable>
+
+### transformHead
+
+<ParamField path="transformHead" type="(context: TransformContext) => Awaitable<HeadConfig[]>">
+  Build hook to transform the head before generating each page. Return extra entries that will be merged automatically.
+  
+  <Warning>Only called during static generation, not during dev.</Warning>
+</ParamField>
+
+```ts
+export default {
+  async transformHead({ pageData }) {
+    return [
+      ['meta', { property: 'og:title', content: pageData.title }]
+    ]
+  }
+}
+```
+
+### transformHtml
+
+<ParamField path="transformHtml" type="(code: string, id: string, context: TransformContext) => Awaitable<string | void>">
+  Build hook to transform the HTML content of each page before saving to disk.
+  
+  <Warning>Modifying HTML content may cause hydration problems in runtime.</Warning>
+</ParamField>
+
+### transformPageData
+
+<ParamField path="transformPageData" type="(pageData: PageData, context: TransformPageContext) => Awaitable<Partial<PageData> | void>">
+  Hook to transform the `pageData` of each page. You can directly mutate `pageData` or return changed values which will be merged.
+  
+  <Warning>Be careful as this impacts dev server performance, especially with network requests or heavy computations.</Warning>
+</ParamField>
+
+```ts
+export default {
+  async transformPageData(pageData) {
+    pageData.contributors = await getPageContributors(pageData.relativePath)
+  }
+}
+```
+
+### sitemap
+
+<ParamField path="sitemap" type="SitemapStreamOptions & { hostname: string; transformItems?: (items: SitemapItem[]) => Awaitable<SitemapItem[]> }">
+  <span className="badge badge-warning">experimental</span>
+  
+  Sitemap generation options. Requires `hostname` to be set.
+</ParamField>
+
+```ts
+export default {
+  sitemap: {
+    hostname: 'https://example.com',
+    transformItems: (items) => {
+      return items.filter((item) => !item.url.includes('secret'))
+    }
+  }
+}
+```
+
+### shouldPreload
+
+<ParamField path="shouldPreload" type="(link: string, page: string) => boolean">
+  Function to determine which links should be preloaded.
+</ParamField>
+
+```ts
+export default {
+  shouldPreload: (link, page) => {
+    return !link.includes('/heavy-assets/')
+  }
+}
+```
+
+### useWebFonts
+
+<ParamField path="useWebFonts" type="boolean">
+  Use web fonts instead of emitting font files to dist. The theme should import a file named `fonts.(s)css` for this to work.
+  
+  Default: `true` in webcontainers, `false` otherwise.
+</ParamField>
+
+## Type Helpers
+
+### defineConfig
+
+Type helper that provides TypeScript-powered intellisense for config options.
+
+```ts
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  // TypeScript autocomplete available here
+})
+```
+
+### defineConfigWithTheme
+
+For custom themes, use this to provide type checking for your custom theme config.
+
+```ts
+import { defineConfigWithTheme } from 'vitepress'
+import type { ThemeConfig } from 'your-theme'
+
+export default defineConfigWithTheme<ThemeConfig>({
+  themeConfig: {
+    // Type is ThemeConfig
+  }
+})
+```

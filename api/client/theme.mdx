@@ -1,0 +1,747 @@
+---
+title: Theme API
+description: Theme interface, default theme exports, and component API for VitePress
+---
+
+# Theme API
+
+VitePress themes are defined using a standard interface and can extend the default theme or create completely custom layouts.
+
+## Theme Interface
+
+### Theme Object
+
+A VitePress theme is defined as an object with the following interface:
+
+```ts
+import type { Theme } from 'vitepress'
+
+const theme: Theme = {
+  Layout: MyLayout,
+  enhanceApp({ app, router, siteData }) {
+    // App-level enhancements
+  },
+  extends: BaseTheme,
+  setup() {
+    // Theme-level setup (deprecated)
+  },
+  NotFound: Custom404 // deprecated
+}
+
+export default theme
+```
+
+<ParamField path="Layout" type="Component">
+  The root layout component for your theme
+</ParamField>
+
+<ParamField path="enhanceApp" type="(ctx: EnhanceAppContext) => Awaitable<void>">
+  Function to enhance the Vue app instance
+</ParamField>
+
+<ParamField path="extends" type="Theme">
+  Another theme to extend from
+</ParamField>
+
+<ParamField path="setup" type="() => void">
+  Theme-level setup function (deprecated - use Layout component setup instead)
+</ParamField>
+
+<ParamField path="NotFound" type="Component">
+  Custom 404 component (deprecated - check `useData().page.value.isNotFound` in Layout)
+</ParamField>
+
+---
+
+### EnhanceAppContext
+
+The context object passed to `enhanceApp`:
+
+```ts
+interface EnhanceAppContext {
+  app: App        // Vue app instance
+  router: Router  // VitePress router
+  siteData: Ref<SiteData>  // Site configuration
+}
+```
+
+**Example Usage:**
+
+<CodeGroup>
+```ts Register Components
+import DefaultTheme from 'vitepress/theme'
+import CustomButton from './components/CustomButton.vue'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app }) {
+    // Register global components
+    app.component('CustomButton', CustomButton)
+  }
+}
+```
+
+```ts Add Plugins
+import DefaultTheme from 'vitepress/theme'
+import ElementPlus from 'element-plus'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app }) {
+    // Install Vue plugins
+    app.use(ElementPlus)
+  }
+}
+```
+
+```ts Router Hooks
+import DefaultTheme from 'vitepress/theme'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ router }) {
+    router.onAfterRouteChange = (to) => {
+      console.log('Navigated to:', to)
+    }
+  }
+}
+```
+</CodeGroup>
+
+---
+
+## Default Theme
+
+The default theme can be imported from `vitepress/theme`.
+
+### Importing the Default Theme
+
+```ts
+import DefaultTheme from 'vitepress/theme'
+
+export default DefaultTheme
+```
+
+### Without Fonts
+
+Import the default theme without Inter font:
+
+```ts
+import DefaultTheme from 'vitepress/theme-without-fonts'
+
+export default DefaultTheme
+```
+
+---
+
+## Default Theme Components
+
+The default theme exports several components you can use in your custom theme or markdown:
+
+### Layout Components
+
+#### VPBadge
+
+Display a badge with different styles.
+
+```vue
+<script setup>
+import { VPBadge } from 'vitepress/theme'
+</script>
+
+<template>
+  <VPBadge type="info" text="New" />
+  <VPBadge type="tip" text="Updated" />
+  <VPBadge type="warning" text="Deprecated" />
+  <VPBadge type="danger" text="Breaking" />
+</template>
+```
+
+<ParamField path="type" type="'info' | 'tip' | 'warning' | 'danger'" default="tip">
+  Badge color theme
+</ParamField>
+
+<ParamField path="text" type="string">
+  Badge text content
+</ParamField>
+
+**In Markdown:**
+
+```md
+# API <Badge type="info" text="v2.0+" />
+```
+
+---
+
+#### VPButton
+
+Stylized button component.
+
+```vue
+<script setup>
+import { VPButton } from 'vitepress/theme'
+</script>
+
+<template>
+  <VPButton href="/get-started" text="Get Started" theme="brand" />
+  <VPButton href="/docs" text="Documentation" theme="alt" />
+</template>
+```
+
+<ParamField path="theme" type="'brand' | 'alt' | 'sponsor'">
+  Button style theme
+</ParamField>
+
+<ParamField path="text" type="string">
+  Button text
+</ParamField>
+
+<ParamField path="href" type="string">
+  Link URL
+</ParamField>
+
+<ParamField path="size" type="'small' | 'medium' | 'big'" default="medium">
+  Button size
+</ParamField>
+
+---
+
+#### VPImage
+
+Responsive image component with light/dark mode support.
+
+```vue
+<script setup>
+import { VPImage } from 'vitepress/theme'
+</script>
+
+<template>
+  <VPImage 
+    image="/logo.png"
+    alt="Logo" 
+  />
+  
+  <!-- Different images for light/dark mode -->
+  <VPImage 
+    :image="{
+      light: '/logo-light.png',
+      dark: '/logo-dark.png'
+    }"
+    alt="Logo" 
+  />
+</template>
+```
+
+<ParamField path="image" type="string | { light: string, dark: string }" required>
+  Image source URL or theme-specific URLs
+</ParamField>
+
+<ParamField path="alt" type="string" required>
+  Alternative text for the image
+</ParamField>
+
+---
+
+### Home Page Components
+
+#### VPHomeHero
+
+Hero section for home pages.
+
+```vue
+<script setup>
+import { VPHomeHero } from 'vitepress/theme'
+</script>
+
+<template>
+  <VPHomeHero />
+</template>
+```
+
+Reads hero configuration from page frontmatter:
+
+```yaml
+---
+layout: home
+hero:
+  name: VitePress
+  text: Vite & Vue powered static site generator
+  tagline: Simple, powerful, and fast
+  image:
+    src: /logo.png
+    alt: VitePress
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /quickstart
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/vuejs/vitepress
+---
+```
+
+---
+
+#### VPHomeFeatures
+
+Features grid for home pages.
+
+```vue
+<script setup>
+import { VPHomeFeatures } from 'vitepress/theme'
+</script>
+
+<template>
+  <VPHomeFeatures />
+</template>
+```
+
+Reads features from page frontmatter:
+
+```yaml
+---
+layout: home
+features:
+  - icon: ⚡️
+    title: Vite-Powered
+    details: Instant server start and lightning fast HMR
+  - icon: 🖖
+    title: Vue-Enhanced
+    details: Use Vue components directly in markdown
+  - icon: 🛠️
+    title: Simple and Minimal
+    details: Markdown-centered with minimal configuration
+---
+```
+
+---
+
+#### VPHomeContent
+
+Wrapper for custom home page content.
+
+```vue
+<script setup>
+import { VPHomeContent } from 'vitepress/theme'
+</script>
+
+<template>
+  <VPHomeContent>
+    <!-- Your custom home content -->
+  </VPHomeContent>
+</template>
+```
+
+---
+
+#### VPHomeSponsors
+
+Display sponsors on the home page.
+
+```vue
+<script setup>
+import { VPHomeSponsors } from 'vitepress/theme'
+
+const sponsors = [
+  {
+    tier: 'Platinum',
+    size: 'big',
+    items: [
+      { name: 'Company A', url: 'https://a.com', img: '/sponsors/a.png' },
+      { name: 'Company B', url: 'https://b.com', img: '/sponsors/b.png' }
+    ]
+  }
+]
+</script>
+
+<template>
+  <VPHomeSponsors :data="sponsors" />
+</template>
+```
+
+---
+
+### Team Components
+
+#### VPTeamPage
+
+Wrapper component for team pages.
+
+```vue
+<script setup>
+import { VPTeamPage } from 'vitepress/theme'
+</script>
+
+<template>
+  <VPTeamPage>
+    <template #title>Our Team</template>
+    <template #lead>The awesome people behind the project</template>
+  </VPTeamPage>
+</template>
+```
+
+---
+
+#### VPTeamPageTitle
+
+Title section for team pages.
+
+```vue
+<script setup>
+import { VPTeamPageTitle } from 'vitepress/theme'
+</script>
+
+<template>
+  <VPTeamPageTitle>
+    <template #title>Meet Our Team</template>
+    <template #lead>Dedicated individuals making it happen</template>
+  </VPTeamPageTitle>
+</template>
+```
+
+---
+
+#### VPTeamPageSection
+
+Section wrapper for grouping team members.
+
+```vue
+<script setup>
+import { VPTeamPageSection } from 'vitepress/theme'
+</script>
+
+<template>
+  <VPTeamPageSection>
+    <template #title>Core Team</template>
+    <template #lead>The maintainers of the project</template>
+    <template #members>
+      <!-- Team members -->
+    </template>
+  </VPTeamPageSection>
+</template>
+```
+
+---
+
+#### VPTeamMembers
+
+Display team member cards.
+
+```vue
+<script setup>
+import { VPTeamMembers } from 'vitepress/theme'
+
+const members = [
+  {
+    avatar: 'https://github.com/yyx990803.png',
+    name: 'Evan You',
+    title: 'Creator',
+    links: [
+      { icon: 'github', link: 'https://github.com/yyx990803' },
+      { icon: 'twitter', link: 'https://twitter.com/youyuxi' }
+    ]
+  }
+]
+</script>
+
+<template>
+  <VPTeamMembers :members="members" />
+</template>
+```
+
+<ParamField path="members" type="TeamMember[]" required>
+  Array of team member objects
+</ParamField>
+
+<ParamField path="size" type="'small' | 'medium'" default="medium">
+  Size of member cards
+</ParamField>
+
+**TeamMember Type:**
+
+```ts
+interface TeamMember {
+  avatar: string
+  name: string
+  title?: string
+  org?: string
+  orgLink?: string
+  desc?: string
+  links?: SocialLink[]
+  sponsor?: string
+  actionText?: string
+}
+```
+
+---
+
+### Social Components
+
+#### VPSocialLinks
+
+Display a group of social media links.
+
+```vue
+<script setup>
+import { VPSocialLinks } from 'vitepress/theme'
+
+const links = [
+  { icon: 'github', link: 'https://github.com/vuejs/vitepress' },
+  { icon: 'twitter', link: 'https://twitter.com/vite_js' },
+  { icon: 'discord', link: 'https://chat.vitejs.dev' }
+]
+</script>
+
+<template>
+  <VPSocialLinks :links="links" />
+</template>
+```
+
+---
+
+#### VPSocialLink
+
+Single social media link icon.
+
+```vue
+<script setup>
+import { VPSocialLink } from 'vitepress/theme'
+</script>
+
+<template>
+  <VPSocialLink 
+    icon="github" 
+    link="https://github.com/vuejs/vitepress" 
+  />
+</template>
+```
+
+<ParamField path="icon" type="string | { svg: string }" required>
+  Icon name or custom SVG
+</ParamField>
+
+<ParamField path="link" type="string" required>
+  URL to link to
+</ParamField>
+
+<ParamField path="ariaLabel" type="string">
+  Accessibility label
+</ParamField>
+
+**Built-in Icons:**
+- `discord`
+- `facebook`
+- `github`
+- `instagram`
+- `linkedin`
+- `mastodon`
+- `slack`
+- `twitter`
+- `youtube`
+- `x`
+
+**Custom SVG:**
+
+```vue
+<VPSocialLink 
+  :icon="{ svg: '<svg>...</svg>' }" 
+  link="https://example.com" 
+/>
+```
+
+---
+
+### Other Components
+
+#### VPSponsors
+
+Display sponsor logos in a grid.
+
+```vue
+<script setup>
+import { VPSponsors } from 'vitepress/theme'
+
+const data = [
+  {
+    tier: 'Platinum Sponsors',
+    size: 'big',
+    items: [
+      { name: 'Sponsor 1', url: 'https://...', img: '/sponsors/1.png' }
+    ]
+  }
+]
+</script>
+
+<template>
+  <VPSponsors :data="data" />
+</template>
+```
+
+---
+
+#### VPDocAsideSponsors
+
+Sponsors section for the aside/sidebar.
+
+```vue
+<script setup>
+import { VPDocAsideSponsors } from 'vitepress/theme'
+</script>
+
+<template>
+  <VPDocAsideSponsors />
+</template>
+```
+
+Reads sponsors from theme config `carbonAds` or `sidebar.sponsors`.
+
+---
+
+#### VPFeatures
+
+Alternative features component.
+
+```vue
+<script setup>
+import { VPFeatures } from 'vitepress/theme'
+
+const features = [
+  {
+    icon: '⚡️',
+    title: 'Fast',
+    details: 'Lightning fast performance'
+  }
+]
+</script>
+
+<template>
+  <VPFeatures :features="features" />
+</template>
+```
+
+---
+
+## Default Theme Composables
+
+### useLayout
+
+Access layout state and computed properties.
+
+```ts
+import { useLayout } from 'vitepress/theme'
+
+const {
+  isHome,
+  sidebar,
+  sidebarGroups,
+  hasSidebar,
+  isSidebarEnabled,
+  hasAside,
+  leftAside,
+  headers,
+  hasLocalNav
+} = useLayout()
+```
+
+<ResponseField name="isHome" type="ComputedRef<boolean>">
+  Whether the current page is the home page
+</ResponseField>
+
+<ResponseField name="sidebar" type="Ref<SidebarItem[]>">
+  Current sidebar items
+</ResponseField>
+
+<ResponseField name="sidebarGroups" type="ComputedRef<SidebarItem[]>">
+  Grouped sidebar items
+</ResponseField>
+
+<ResponseField name="hasSidebar" type="ComputedRef<boolean>">
+  Whether sidebar should be displayed
+</ResponseField>
+
+<ResponseField name="isSidebarEnabled" type="ComputedRef<boolean>">
+  Whether sidebar is enabled at current viewport
+</ResponseField>
+
+<ResponseField name="hasAside" type="ComputedRef<boolean>">
+  Whether aside/outline should be displayed
+</ResponseField>
+
+<ResponseField name="leftAside" type="ComputedRef<boolean>">
+  Whether aside is positioned on the left
+</ResponseField>
+
+<ResponseField name="headers" type="Ref<OutlineItem[]>">
+  Page outline/headers
+</ResponseField>
+
+<ResponseField name="hasLocalNav" type="ComputedRef<boolean>">
+  Whether local navigation should be shown
+</ResponseField>
+
+---
+
+## Custom Theme Example
+
+<CodeGroup>
+```ts Extending Default Theme
+// .vitepress/theme/index.ts
+import DefaultTheme from 'vitepress/theme'
+import CustomLayout from './CustomLayout.vue'
+import './custom.css'
+
+export default {
+  extends: DefaultTheme,
+  Layout: CustomLayout,
+  enhanceApp({ app }) {
+    // Register custom components
+    app.component('MyComponent', MyComponent)
+  }
+}
+```
+
+```vue Custom Layout
+<!-- .vitepress/theme/CustomLayout.vue -->
+<script setup>
+import DefaultTheme from 'vitepress/theme'
+import { useData } from 'vitepress'
+
+const { Layout } = DefaultTheme
+const { frontmatter } = useData()
+</script>
+
+<template>
+  <Layout>
+    <template #nav-bar-title-after>
+      <span class="beta">BETA</span>
+    </template>
+    
+    <template #doc-before>
+      <div v-if="frontmatter.banner" class="banner">
+        {{ frontmatter.banner }}
+      </div>
+    </template>
+  </Layout>
+</template>
+```
+
+```ts Completely Custom Theme
+// .vitepress/theme/index.ts
+import Layout from './Layout.vue'
+import NotFound from './NotFound.vue'
+
+export default {
+  Layout,
+  NotFound,
+  enhanceApp({ app, router, siteData }) {
+    // Custom setup
+  }
+}
+```
+</CodeGroup>
+
+---
+
+## Layout Slots
+
+The default theme Layout component provides numerous slots for customization. See the [Layout Slots](/customization/extending-default-theme#layout-slots) documentation for a complete list.

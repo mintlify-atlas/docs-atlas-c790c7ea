@@ -1,0 +1,568 @@
+---
+title: Deploying Your VitePress Site
+description: Build and deploy your VitePress site to popular hosting platforms
+---
+
+# Deploying Your VitePress Site
+
+VitePress generates static HTML files that can be deployed to any hosting platform. This guide covers building for production and deploying to popular platforms.
+
+## Prerequisites
+
+These deployment guides assume:
+
+- VitePress site is in the `docs` directory
+- Using default build output directory (`.vitepress/dist`)
+- VitePress installed as a local dependency
+- npm scripts configured in `package.json`:
+
+```json package.json
+{
+  "scripts": {
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  }
+}
+```
+
+## Build and Test Locally
+
+<Steps>
+  <Step title="Build your site">
+    Generate static HTML for production:
+    
+    <CodeGroup>
+      ```bash npm
+      npm run docs:build
+      ```
+      
+      ```bash pnpm
+      pnpm run docs:build
+      ```
+      
+      ```bash yarn
+      yarn docs:build
+      ```
+      
+      ```bash bun
+      bun run docs:build
+      ```
+    </CodeGroup>
+    
+    Built files are output to `.vitepress/dist`.
+  </Step>
+  
+  <Step title="Preview locally">
+    Test the production build before deploying:
+    
+    <CodeGroup>
+      ```bash npm
+      npm run docs:preview
+      ```
+      
+      ```bash pnpm
+      pnpm run docs:preview
+      ```
+      
+      ```bash yarn
+      yarn docs:preview
+      ```
+      
+      ```bash bun
+      bun run docs:preview
+      ```
+    </CodeGroup>
+    
+    The preview server runs at `http://localhost:4173`.
+  </Step>
+  
+  <Step title="Configure port (optional)">
+    Change the preview server port:
+    
+    ```json package.json
+    {
+      "scripts": {
+        "docs:preview": "vitepress preview docs --port 8080"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Setting a Public Base Path
+
+If your site is served from a subdirectory, set the `base` option:
+
+```javascript .vitepress/config.js
+export default {
+  base: '/blog/'  // For https://mywebsite.com/blog/
+}
+```
+
+<Note>
+**GitHub Pages example**: Deploying to `user.github.io/repo/` requires `base: '/repo/'`
+</Note>
+
+## HTTP Cache Headers
+
+Optimize performance with proper cache headers for static assets.
+
+### Understanding Asset Hashing
+
+VitePress uses content-based hashing for assets:
+
+```
+app.4f283b18.js
+     ^^^^^^^^ content hash
+```
+
+The hash changes only when file content changes, enabling aggressive caching.
+
+### Recommended Cache Headers
+
+For files in the `assets/` directory:
+
+```
+Cache-Control: max-age=31536000,immutable
+```
+
+<Tabs>
+  <Tab title="Netlify">
+    Create `docs/public/_headers`:
+    
+    ```text _headers
+    /assets/*
+      cache-control: max-age=31536000
+      cache-control: immutable
+    ```
+    
+    <Tip>
+    The `_headers` file in the `public` directory is copied to the build output.
+    </Tip>
+    
+    [Netlify headers documentation](https://docs.netlify.com/routing/headers/)
+  </Tab>
+  
+  <Tab title="Vercel">
+    Create `vercel.json` in your **repository root**:
+    
+    ```json vercel.json
+    {
+      "headers": [
+        {
+          "source": "/assets/(.*)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "max-age=31536000, immutable"
+            }
+          ]
+        }
+      ]
+    }
+    ```
+    
+    [Vercel headers documentation](https://vercel.com/docs/concepts/projects/project-configuration#headers)
+  </Tab>
+  
+  <Tab title="Nginx">
+    Add to your server block configuration:
+    
+    ```nginx
+    location ~* ^/assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Platform-Specific Guides
+
+### Netlify / Vercel / Cloudflare Pages / AWS Amplify / Render
+
+These platforms work similarly - configure via dashboard:
+
+<Steps>
+  <Step title="Connect repository">
+    Link your Git repository to the platform.
+  </Step>
+  
+  <Step title="Configure build settings">
+    - **Build Command**: `npm run docs:build`
+    - **Output Directory**: `docs/.vitepress/dist`
+    - **Node Version**: `20` (or above)
+  </Step>
+  
+  <Step title="Deploy">
+    Push to your main branch to trigger deployment.
+  </Step>
+</Steps>
+
+<Warning>
+Don't enable **Auto Minify** for HTML. It removes Vue-specific comments and causes hydration errors.
+</Warning>
+
+### GitHub Pages
+
+Deploy automatically using GitHub Actions:
+
+<Steps>
+  <Step title="Create workflow file">
+    Create `.github/workflows/deploy.yml`:
+    
+    ```yaml .github/workflows/deploy.yml
+    name: Deploy VitePress site to Pages
+    
+    on:
+      push:
+        branches: [main]
+      workflow_dispatch:
+    
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v5
+            with:
+              fetch-depth: 0
+          
+          - name: Setup Node
+            uses: actions/setup-node@v6
+            with:
+              node-version: 24
+              cache: npm
+          
+          - name: Setup Pages
+            uses: actions/configure-pages@v4
+          
+          - name: Install dependencies
+            run: npm ci
+          
+          - name: Build with VitePress
+            run: npm run docs:build
+          
+          - name: Upload artifact
+            uses: actions/upload-pages-artifact@v3
+            with:
+              path: docs/.vitepress/dist
+      
+      deploy:
+        environment:
+          name: github-pages
+          url: ${{ steps.deployment.outputs.page_url }}
+        needs: build
+        runs-on: ubuntu-latest
+        name: Deploy
+        steps:
+          - name: Deploy to GitHub Pages
+            id: deployment
+            uses: actions/deploy-pages@v4
+    ```
+  </Step>
+  
+  <Step title="Configure Pages source">
+    In repository settings under **Pages**, set:
+    
+    - **Source**: GitHub Actions
+  </Step>
+  
+  <Step title="Set base path">
+    Update `.vitepress/config.js`:
+    
+    ```javascript
+    export default {
+      base: '/repository-name/'
+    }
+    ```
+  </Step>
+  
+  <Step title="Deploy">
+    Push to `main` branch. Your site deploys to:
+    
+    `https://username.github.io/repository/`
+  </Step>
+</Steps>
+
+<Note>
+For **pnpm** or **yarn**, uncomment the relevant sections in the workflow file and update the cache and install commands.
+</Note>
+
+### GitLab Pages
+
+Deploy using GitLab CI:
+
+<Steps>
+  <Step title="Configure output directory">
+    GitLab Pages requires output in `public/`:
+    
+    ```javascript .vitepress/config.js
+    export default {
+      outDir: '../public',
+      base: '/repository/'  // For project pages
+    }
+    ```
+    
+    <Tip>
+    Omit `base` for user/group pages or custom domains.
+    </Tip>
+  </Step>
+  
+  <Step title="Create CI configuration">
+    Create `.gitlab-ci.yml` in repository root:
+    
+    ```yaml .gitlab-ci.yml
+    image: node:18
+    
+    pages:
+      cache:
+        paths:
+          - node_modules/
+      
+      script:
+        - npm install
+        - npm run docs:build
+      
+      artifacts:
+        paths:
+          - public
+      
+      only:
+        - main
+    ```
+  </Step>
+  
+  <Step title="Deploy">
+    Push to the `main` branch to trigger the pipeline.
+  </Step>
+</Steps>
+
+### Azure Static Web Apps
+
+<Steps>
+  <Step title="Follow Azure documentation">
+    See the [official Azure Static Web Apps guide](https://docs.microsoft.com/en-us/azure/static-web-apps/build-configuration).
+  </Step>
+  
+  <Step title="Configure build settings">
+    Set these values in your configuration:
+    
+    - **`app_location`**: `/`
+    - **`output_location`**: `docs/.vitepress/dist`
+    - **`app_build_command`**: `npm run docs:build`
+  </Step>
+</Steps>
+
+### Firebase
+
+<Steps>
+  <Step title="Create Firebase config">
+    Create `firebase.json` and `.firebaserc` in your repository root:
+    
+    ```json firebase.json
+    {
+      "hosting": {
+        "public": "docs/.vitepress/dist",
+        "ignore": []
+      }
+    }
+    ```
+    
+    ```json .firebaserc
+    {
+      "projects": {
+        "default": "YOUR_FIREBASE_ID"
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Build and deploy">
+    ```bash
+    npm run docs:build
+    firebase deploy
+    ```
+  </Step>
+</Steps>
+
+### Surge
+
+Quick deployment with Surge:
+
+```bash
+npm run docs:build
+npx surge docs/.vitepress/dist
+```
+
+### Custom Nginx Server
+
+Example Nginx configuration with gzip compression and proper caching:
+
+```nginx
+server {
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    
+    listen 80;
+    server_name _;
+    index index.html;
+    
+    location / {
+        # Content location
+        root /app;
+        
+        # Exact matches -> reverse clean urls -> folders -> not found
+        try_files $uri $uri.html $uri/ =404;
+        
+        # Non-existent pages
+        error_page 404 /404.html;
+        
+        # Folder without index.html raises 403
+        error_page 403 /404.html;
+        
+        # Cache headers for hashed assets
+        location ~* ^/assets/ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+}
+```
+
+<Warning>
+**Important**: Do not default `try_files` to `index.html` like in SPAs. This causes invalid page state in VitePress.
+</Warning>
+
+<Note>
+This assumes your built site is in `/app`. Adjust the `root` directive for your setup.
+</Note>
+
+## Additional Platforms
+
+<CardGroup cols={2}>
+  <Card title="CloudRay" icon="cloud">
+    Deploy with [CloudRay](https://cloudray.io/) - follow their [VitePress guide](https://cloudray.io/articles/how-to-deploy-vitepress-site)
+  </Card>
+  
+  <Card title="Hostinger" icon="server">
+    Deploy to [Hostinger](https://www.hostinger.com/web-apps-hosting) - see their [deployment guide](https://www.hostinger.com/support/how-to-deploy-a-nodejs-website-in-hostinger/)
+  </Card>
+  
+  <Card title="Kinsta" icon="rocket">
+    Deploy to [Kinsta](https://kinsta.com/static-site-hosting/) - follow their [VitePress example](https://kinsta.com/docs/vitepress-static-site-example/)
+  </Card>
+  
+  <Card title="Stormkit" icon="bolt">
+    Deploy to [Stormkit](https://www.stormkit.io) - see their [deployment guide](https://stormkit.io/blog/how-to-deploy-vitepress)
+  </Card>
+</CardGroup>
+
+## Build Options
+
+Customize the build process with command-line options:
+
+### Output Directory
+
+Change the build output location:
+
+```bash
+vitepress build docs --outDir ./dist
+```
+
+Or in config:
+
+```javascript .vitepress/config.js
+export default {
+  outDir: './dist'
+}
+```
+
+### Base Path at Build Time
+
+Override the base path during build:
+
+```bash
+vitepress build docs --base /new-base/
+```
+
+### MPA Mode
+
+Build as a traditional multi-page application (disables client-side routing):
+
+```bash
+vitepress build docs --mpa
+```
+
+Or in config:
+
+```javascript .vitepress/config.js
+export default {
+  mpa: true
+}
+```
+
+## Troubleshooting
+
+### Build Fails on CI
+
+Ensure Node.js version 18 or higher:
+
+```yaml
+- uses: actions/setup-node@v6
+  with:
+    node-version: 24
+```
+
+### 404 on Deployment
+
+Check your base path configuration matches your hosting setup:
+
+- Root domain: `base: '/'` (default)
+- Subdirectory: `base: '/subdirectory/'`
+
+### Assets Not Loading
+
+Verify:
+1. Base path includes trailing slash: `base: '/repo/'` not `'/repo'`
+2. Assets are in `docs/public/` or imported in components
+3. Cache headers are properly configured
+
+### Clean URLs Not Working
+
+Enable clean URL support on your hosting platform or disable in config:
+
+```javascript .vitepress/config.js
+export default {
+  cleanUrls: false
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Performance Optimization" icon="gauge" href="/performance">
+    Learn how to optimize your VitePress site for maximum performance
+  </Card>
+  
+  <Card title="Custom Domain" icon="globe" href="/custom-domain">
+    Set up a custom domain for your deployed site
+  </Card>
+  
+  <Card title="Analytics" icon="chart" href="/analytics">
+    Add analytics tracking to your VitePress site
+  </Card>
+  
+  <Card title="SEO" icon="search" href="/seo">
+    Optimize your site for search engines
+  </Card>
+</CardGroup>

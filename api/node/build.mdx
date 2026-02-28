@@ -1,0 +1,227 @@
+---
+title: build()
+description: Programmatic build API for VitePress
+---
+
+# build()
+
+Build your VitePress site programmatically. The `build()` function creates a production-ready static site.
+
+## Usage
+
+```typescript
+import { build } from 'vitepress'
+
+await build()
+```
+
+## Function Signature
+
+```typescript
+export async function build(
+  root?: string,
+  buildOptions?: BuildOptions & {
+    base?: string
+    mpa?: string
+    onAfterConfigResolve?: (siteConfig: SiteConfig) => Awaitable<void>
+  }
+): Promise<void>
+```
+
+## Parameters
+
+<ParamField path="root" type="string" optional>
+  The root directory of your VitePress project. Defaults to `process.cwd()`.
+  
+  This should be the directory containing the `.vitepress` folder.
+</ParamField>
+
+<ParamField path="buildOptions" type="BuildOptions" optional>
+  Configuration options for the build process.
+  
+  <ParamField path="buildOptions.base" type="string" optional>
+    Base public path when served in production. Overrides the base path defined in config.
+    
+    Must start and end with a slash (e.g., `/my-site/`).
+  </ParamField>
+  
+  <ParamField path="buildOptions.mpa" type="string" optional>
+    Enable MPA (Multi-Page Application) mode. When enabled, VitePress will generate a zero-JS static site.
+    
+    This is experimental and disables client-side routing.
+  </ParamField>
+  
+  <ParamField path="buildOptions.outDir" type="string" optional>
+    Output directory for build files. Overrides the `outDir` specified in config.
+    
+    Defaults to `.vitepress/dist`.
+  </ParamField>
+  
+  <ParamField path="buildOptions.onAfterConfigResolve" type="(siteConfig: SiteConfig) => Awaitable<void>" optional>
+    Hook called after the site config is resolved but before the build starts.
+    
+    Use this to inspect or modify the resolved configuration.
+  </ParamField>
+</ParamField>
+
+## Examples
+
+### Basic Build
+
+```typescript
+import { build } from 'vitepress'
+
+await build()
+```
+
+### Build with Custom Root
+
+```typescript
+import { build } from 'vitepress'
+import path from 'path'
+
+const root = path.resolve(__dirname, '../docs')
+await build(root)
+```
+
+### Build with Custom Options
+
+```typescript
+import { build } from 'vitepress'
+
+await build(process.cwd(), {
+  base: '/my-docs/',
+  outDir: './dist/site'
+})
+```
+
+### Build with Config Hook
+
+```typescript
+import { build } from 'vitepress'
+
+await build(process.cwd(), {
+  async onAfterConfigResolve(config) {
+    console.log('Building', config.site.title)
+    console.log('Pages:', config.pages.length)
+    
+    // Modify config if needed
+    config.site.description = 'Custom description'
+  }
+})
+```
+
+### Build MPA Site
+
+```typescript
+import { build } from 'vitepress'
+
+// Build a zero-JS static site
+await build(process.cwd(), {
+  mpa: true
+})
+```
+
+## Build Process
+
+The build function performs the following steps:
+
+1. **Config Resolution**: Resolves the site configuration from `.vitepress/config.js`
+2. **Bundling**: Creates optimized client and server bundles using Vite
+3. **Rendering**: Pre-renders all pages to static HTML
+4. **Asset Generation**: Generates CSS, fonts, and other static assets
+5. **Sitemap**: Generates sitemap.xml if configured
+6. **Cleanup**: Removes temporary files
+
+## Build Output
+
+The build outputs the following files to `.vitepress/dist` (or your configured `outDir`):
+
+- `index.html` - Homepage
+- `*.html` - Individual page files
+- `assets/` - JavaScript, CSS, fonts, and images
+- `hashmap.json` - Page hash map for cache invalidation
+- `vp-icons.css` - Social media icons
+- `sitemap.xml` - Sitemap (if configured)
+
+## Environment Variables
+
+<ParamField path="NODE_ENV" type="string">
+  Automatically set to `'production'` during build.
+</ParamField>
+
+<ParamField path="BUNDLE_ONLY" type="string" optional>
+  When set, only bundles the app without rendering pages. Useful for debugging build issues.
+</ParamField>
+
+<ParamField path="DEBUG" type="string" optional>
+  When set, preserves the `.vitepress/.temp` directory after build for inspection.
+</ParamField>
+
+## Build Hooks
+
+VitePress provides several hooks during the build process:
+
+### buildEnd
+
+Called after the build completes:
+
+```typescript
+// .vitepress/config.js
+export default {
+  async buildEnd(siteConfig) {
+    // Generate additional files
+    // Upload to CDN
+    // etc.
+  }
+}
+```
+
+### postRender
+
+Called after SSR rendering:
+
+```typescript
+// .vitepress/config.js
+export default {
+  async postRender(context) {
+    // Process rendered content
+    console.log('Rendered pages:', context.renderedPages)
+  }
+}
+```
+
+### transformHead
+
+Transform the `<head>` before writing HTML:
+
+```typescript
+// .vitepress/config.js
+export default {
+  async transformHead(context) {
+    return [
+      ['meta', { name: 'keywords', content: context.pageData.frontmatter.keywords }]
+    ]
+  }
+}
+```
+
+## Error Handling
+
+```typescript
+import { build } from 'vitepress'
+
+try {
+  await build()
+  console.log('Build completed successfully')
+} catch (error) {
+  console.error('Build failed:', error)
+  process.exit(1)
+}
+```
+
+## Related
+
+- [serve()](/api/node/serve) - Preview the built site
+- [resolveConfig()](/api/node/config#resolveconfig) - Resolve site configuration
+- [Configuration Reference](/api/site-config) - Site configuration options

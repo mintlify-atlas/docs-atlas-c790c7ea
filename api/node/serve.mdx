@@ -1,0 +1,232 @@
+---
+title: serve()
+description: Preview server API for built VitePress sites
+---
+
+# serve()
+
+Serve a built VitePress site locally for preview. This is useful for testing the production build before deployment.
+
+## Usage
+
+```typescript
+import { serve } from 'vitepress'
+
+const server = await serve()
+```
+
+## Function Signature
+
+```typescript
+export async function serve(
+  options?: ServeOptions
+): Promise<Polka>
+
+interface ServeOptions {
+  base?: string
+  root?: string
+  port?: number
+}
+```
+
+## Parameters
+
+<ParamField path="options" type="ServeOptions" optional>
+  Configuration options for the preview server.
+  
+  <ParamField path="options.root" type="string" optional>
+    The root directory of your VitePress project. Defaults to `process.cwd()`.
+    
+    This should be the directory containing the `.vitepress` folder.
+  </ParamField>
+  
+  <ParamField path="options.base" type="string" optional>
+    Base public path to serve the site at. Overrides the base path from config.
+    
+    Example: `/my-docs/`
+  </ParamField>
+  
+  <ParamField path="options.port" type="number" optional default="4173">
+    Port number for the preview server.
+  </ParamField>
+</ParamField>
+
+## Return Value
+
+<ResponseField name="server" type="Polka">
+  Returns a [Polka](https://github.com/lukeed/polka) server instance that can be used to stop the server or access server details.
+</ResponseField>
+
+## Examples
+
+### Basic Preview Server
+
+```typescript
+import { serve } from 'vitepress'
+
+const server = await serve()
+// Server is now running at http://localhost:4173/
+```
+
+### Custom Port
+
+```typescript
+import { serve } from 'vitepress'
+
+const server = await serve({
+  port: 8080
+})
+// Server is now running at http://localhost:8080/
+```
+
+### Custom Base Path
+
+```typescript
+import { serve } from 'vitepress'
+
+const server = await serve({
+  base: '/docs/',
+  port: 4173
+})
+// Server is now running at http://localhost:4173/docs/
+```
+
+### Custom Root Directory
+
+```typescript
+import { serve } from 'vitepress'
+import path from 'path'
+
+const server = await serve({
+  root: path.resolve(__dirname, '../my-docs'),
+  port: 3000
+})
+```
+
+### Build and Serve
+
+```typescript
+import { build, serve } from 'vitepress'
+
+// Build the site first
+await build()
+
+// Then serve it
+const server = await serve({
+  port: 4173
+})
+
+console.log('Preview server running')
+```
+
+### Programmatic Server Control
+
+```typescript
+import { serve } from 'vitepress'
+
+const server = await serve({ port: 4173 })
+
+// Do something...
+
+// Stop the server when done
+server.server.close()
+```
+
+## Server Features
+
+The preview server includes:
+
+### Compression
+
+Automatic Brotli and gzip compression for all responses.
+
+### Caching
+
+Smart caching strategy:
+- **Asset files** (`/assets/`): Cached for 1 year with `immutable` flag
+- **HTML files**: No cache, always revalidated
+
+### SPA Fallback
+
+Serves `404.html` for non-asset routes that don't match files, supporting client-side routing.
+
+### Static File Serving
+
+Serves all static files from the build output directory (`.vitepress/dist` by default).
+
+## CLI Alternative
+
+You can also use the VitePress CLI to preview your site:
+
+```bash
+vitepress preview
+```
+
+With options:
+
+```bash
+vitepress preview --port 8080
+vitepress preview --base /docs/
+```
+
+## Prerequisites
+
+Before running the preview server, you must build your site:
+
+```bash
+vitepress build
+```
+
+Or programmatically:
+
+```typescript
+import { build } from 'vitepress'
+
+await build()
+```
+
+## Server Configuration
+
+The preview server uses:
+
+- [Polka](https://github.com/lukeed/polka) - Fast micro-framework
+- [sirv](https://github.com/lukeed/sirv) - Static file serving
+- [@polka/compression](https://github.com/lukeed/polka#compression) - Response compression
+
+## Error Handling
+
+```typescript
+import { serve } from 'vitepress'
+
+try {
+  const server = await serve({ port: 4173 })
+  console.log('Server started successfully')
+} catch (error) {
+  if (error.code === 'EADDRINUSE') {
+    console.error('Port 4173 is already in use')
+  } else {
+    console.error('Failed to start server:', error)
+  }
+  process.exit(1)
+}
+```
+
+## Production Deployment
+
+While `serve()` is useful for local preview, for production deployment you should:
+
+1. Build your site with `build()`
+2. Deploy the `.vitepress/dist` folder to a static hosting service
+
+Popular options:
+- Vercel
+- Netlify
+- GitHub Pages
+- CloudFlare Pages
+- AWS S3 + CloudFront
+
+## Related
+
+- [build()](/api/node/build) - Build the site for production
+- [createServer()](/api/node/config#createserver) - Create a development server
+- [Deployment Guide](/deploying) - Deploy your VitePress site

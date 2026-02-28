@@ -1,0 +1,563 @@
+---
+title: Frontmatter Configuration
+description: Complete guide to VitePress frontmatter options for page-level configuration, metadata, and theme customization.
+---
+
+# Frontmatter Configuration
+
+Frontmatter enables page-based configuration in VitePress. Every markdown file can use YAML frontmatter to override site-level or theme-level options.
+
+## Usage
+
+VitePress parses YAML frontmatter using [gray-matter](https://github.com/jonschlinkert/gray-matter). Place frontmatter at the top of your markdown file:
+
+```markdown
+---
+title: My Documentation Page
+description: A comprehensive guide to our API
+layout: doc
+---
+
+# Content starts here
+```
+
+<Warning>
+Frontmatter must be at the very top of the file, before any elements including `<script>` tags.
+</Warning>
+
+## Accessing Frontmatter Data
+
+### In Markdown
+
+Access frontmatter via the `$frontmatter` global:
+
+```markdown
+---
+title: User Guide
+author: Jane Smith
+date: 2024-01-15
+---
+
+# {{ $frontmatter.title }}
+
+By {{ $frontmatter.author }} on {{ $frontmatter.date }}
+```
+
+### In Vue Components
+
+Use the `useData()` helper in `<script setup>`:
+
+```vue
+<script setup>
+import { useData } from 'vitepress'
+
+const { frontmatter } = useData()
+</script>
+
+<template>
+  <div>
+    <h1>{{ frontmatter.title }}</h1>
+    <p>Last updated: {{ frontmatter.date }}</p>
+  </div>
+</template>
+```
+
+## Site Configuration Fields
+
+These fields override site-level configuration for individual pages.
+
+### title
+
+**Type:** `string`
+
+Title for the page. Overrides the site-level title.
+
+```yaml
+---
+title: API Reference
+---
+```
+
+<Accordion title="How Title Generation Works">
+- If `title` is set, it's used as the page title
+- Combined with `titleTemplate` to generate the full `<title>` tag
+- Example: `API Reference | My Docs`
+</Accordion>
+
+### titleTemplate
+
+**Type:** `string | boolean`
+
+Customize the title suffix or format for this page:
+
+<Tabs>
+  <Tab title="Custom Suffix">
+    ```yaml
+    ---
+    title: API Reference
+    titleTemplate: Developer Docs
+    ---
+    ```
+    
+    Result: `API Reference | Developer Docs`
+  </Tab>
+  
+  <Tab title="Custom Format">
+    ```yaml
+    ---
+    title: API Reference
+    titleTemplate: ':title - Developer Portal'
+    ---
+    ```
+    
+    Result: `API Reference - Developer Portal`
+  </Tab>
+  
+  <Tab title="Disable Suffix">
+    ```yaml
+    ---
+    title: API Reference
+    titleTemplate: false
+    ---
+    ```
+    
+    Result: `API Reference`
+  </Tab>
+</Tabs>
+
+### description
+
+**Type:** `string`
+
+Page description for SEO. Renders as a `<meta>` tag:
+
+```yaml
+---
+title: Getting Started
+description: Learn how to set up and configure VitePress in under 5 minutes
+---
+```
+
+Generates:
+```html
+<meta name="description" content="Learn how to set up and configure VitePress in under 5 minutes">
+```
+
+### head
+
+**Type:** `HeadConfig[]`
+
+Inject additional tags into the `<head>` section:
+
+```yaml
+---
+head:
+  - - meta
+    - name: keywords
+      content: vitepress, documentation, vue
+  - - meta
+    - property: og:image
+      content: https://example.com/image.png
+  - - link
+    - rel: canonical
+      href: https://example.com/guide
+---
+```
+
+<Note>
+The `HeadConfig` type is defined as:
+```typescript
+type HeadConfig =
+  | [string, Record<string, string>]
+  | [string, Record<string, string>, string]
+```
+</Note>
+
+## Default Theme Fields
+
+These options are specific to VitePress's default theme.
+
+### layout
+
+**Type:** `'doc' | 'home' | 'page'`  
+**Default:** `'doc'`
+
+Determines the page layout:
+
+<Tabs>
+  <Tab title="doc">
+    Standard documentation layout with:
+    - Sidebar navigation
+    - Table of contents
+    - Edit link
+    - Last updated timestamp
+    
+    ```yaml
+    ---
+    layout: doc
+    ---
+    ```
+  </Tab>
+  
+  <Tab title="home">
+    Landing page layout for hero sections:
+    
+    ```yaml
+    ---
+    layout: home
+    hero:
+      name: VitePress
+      text: Vite & Vue powered static site generator
+      actions:
+        - theme: brand
+          text: Get Started
+          link: /quickstart
+    features:
+      - title: Simple and Minimal
+        details: Markdown-centered project structure
+      - title: Fast
+        details: Powered by Vite
+    ---
+    ```
+  </Tab>
+  
+  <Tab title="page">
+    Blank layout with no default styling:
+    
+    ```yaml
+    ---
+    layout: page
+    ---
+    ```
+    
+    Perfect for fully custom pages.
+  </Tab>
+</Tabs>
+
+### hero
+
+**For home layout only**
+
+Define the hero section on home pages. See [Default Theme: Home Page](/api/theme-config) for all options.
+
+### features
+
+**For home layout only**
+
+Define feature items on home pages. See [Default Theme: Home Page](/api/theme-config) for all options.
+
+### navbar
+
+**Type:** `boolean`  
+**Default:** `true`
+
+Show or hide the navigation bar on this page:
+
+```yaml
+---
+navbar: false
+---
+```
+
+### sidebar
+
+**Type:** `boolean`  
+**Default:** `true`
+
+Show or hide the sidebar on this page:
+
+```yaml
+---
+sidebar: false
+---
+```
+
+<Tip>
+Useful for landing pages or full-width content.
+</Tip>
+
+### aside
+
+**Type:** `boolean | 'left'`  
+**Default:** `true`
+
+Control the table of contents aside component:
+
+<CodeGroup>
+```yaml Hide Aside
+---
+aside: false
+---
+```
+
+```yaml Right Side (Default)
+---
+aside: true
+---
+```
+
+```yaml Left Side
+---
+aside: left
+---
+```
+</CodeGroup>
+
+### outline
+
+**Type:** `number | [number, number] | 'deep' | false`  
+**Default:** `2`
+
+Control which heading levels appear in the outline:
+
+<Tabs>
+  <Tab title="Single Level">
+    ```yaml
+    ---
+    outline: 3
+    ---
+    ```
+    
+    Shows h2 and h3 headings
+  </Tab>
+  
+  <Tab title="Range">
+    ```yaml
+    ---
+    outline: [2, 4]
+    ---
+    ```
+    
+    Shows h2, h3, and h4 headings
+  </Tab>
+  
+  <Tab title="Deep">
+    ```yaml
+    ---
+    outline: deep
+    ---
+    ```
+    
+    Shows all heading levels (h2-h6)
+  </Tab>
+  
+  <Tab title="Disable">
+    ```yaml
+    ---
+    outline: false
+    ---
+    ```
+    
+    No outline shown
+  </Tab>
+</Tabs>
+
+### lastUpdated
+
+**Type:** `boolean | Date`  
+**Default:** `true`
+
+Control the last updated timestamp display:
+
+<CodeGroup>
+```yaml Disable
+---
+lastUpdated: false
+---
+```
+
+```yaml Custom Date
+---
+lastUpdated: 2024-01-15
+---
+```
+</CodeGroup>
+
+<Note>
+When `true`, VitePress uses Git commit timestamps. When a `Date` is provided, it's displayed instead.
+</Note>
+
+### editLink
+
+**Type:** `boolean`  
+**Default:** `true`
+
+Show or hide the edit link in the page footer:
+
+```yaml
+---
+editLink: false
+---
+```
+
+### footer
+
+**Type:** `boolean`  
+**Default:** `true`
+
+Show or hide the footer on this page:
+
+```yaml
+---
+footer: false
+---
+```
+
+### pageClass
+
+**Type:** `string`
+
+Add custom CSS classes to the page wrapper:
+
+```yaml
+---
+pageClass: custom-page-class
+---
+```
+
+Then style in your theme:
+
+```css
+/* .vitepress/theme/custom.css */
+.custom-page-class {
+  background: linear-gradient(to bottom, #f0f0f0, #ffffff);
+}
+
+.custom-page-class .content {
+  max-width: 1200px;
+}
+```
+
+### isHome
+
+**Type:** `boolean`
+
+Force home page elements in custom layouts:
+
+```yaml
+---
+layout: page
+isHome: true
+---
+```
+
+<Warning>
+This is primarily used internally. Most users won't need this field.
+</Warning>
+
+## Custom Frontmatter Fields
+
+Define your own frontmatter fields for custom functionality:
+
+```yaml
+---
+title: API Documentation
+author: Jane Smith
+tags: [api, reference, advanced]
+difficulty: intermediate
+estimatedTime: 15 min
+---
+```
+
+Access custom fields in components:
+
+```vue
+<script setup>
+import { useData } from 'vitepress'
+
+const { frontmatter } = useData()
+</script>
+
+<template>
+  <div class="metadata">
+    <span class="author">{{ frontmatter.author }}</span>
+    <span class="difficulty">{{ frontmatter.difficulty }}</span>
+    <span class="time">{{ frontmatter.estimatedTime }}</span>
+  </div>
+</template>
+```
+
+## Alternative Formats
+
+VitePress also supports JSON frontmatter:
+
+```json
+---
+{
+  "title": "API Reference",
+  "description": "Complete API documentation",
+  "tags": ["api", "reference"]
+}
+---
+```
+
+## TypeScript Support
+
+Define types for custom frontmatter:
+
+```typescript
+// types/frontmatter.d.ts
+import { DefaultTheme } from 'vitepress'
+
+declare module 'vitepress' {
+  interface PageData {
+    frontmatter: DefaultTheme.Config['frontmatter'] & {
+      author?: string
+      tags?: string[]
+      difficulty?: 'beginner' | 'intermediate' | 'advanced'
+      estimatedTime?: string
+    }
+  }
+}
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Be Consistent">
+    Use consistent frontmatter structure across similar pages:
+    
+    ```yaml
+    # All guide pages
+    ---
+    title: Page Title
+    description: Brief description
+    category: Guide
+    ---
+    ```
+  </Step>
+  
+  <Step title="Optimize for SEO">
+    Always include `title` and `description` for better search rankings:
+    
+    ```yaml
+    ---
+    title: How to Deploy VitePress to Netlify
+    description: Step-by-step guide for deploying your VitePress site to Netlify with automatic builds and custom domains
+    ---
+    ```
+  </Step>
+  
+  <Step title="Use Meaningful Defaults">
+    Set sensible site-level defaults, override only when needed:
+    
+    ```yaml
+    # Only override when different from site default
+    ---
+    editLink: false
+    ---
+    ```
+  </Step>
+  
+  <Step title="Document Custom Fields">
+    Maintain a reference for custom frontmatter fields your team uses
+  </Step>
+</Steps>
+
+## Reference Implementation
+
+<Note>
+Frontmatter parsing is handled by the `@mdit-vue/plugin-frontmatter` package. See `src/node/markdown/markdown.ts:344` for integration details.
+</Note>
+
+For a complete list of default theme frontmatter options, see the [Frontmatter Config Reference](/api/frontmatter-config).

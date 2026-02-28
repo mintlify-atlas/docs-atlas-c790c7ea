@@ -1,0 +1,589 @@
+---
+title: Using Vue in VitePress
+description: Leverage Vue's full power in VitePress with composables, reactivity, and script setup
+---
+
+# Using Vue in VitePress
+
+VitePress is built on Vue 3, giving you access to Vue's complete feature set including Composition API, reactivity system, and script setup syntax.
+
+## Script Setup
+
+Use `<script setup>` in markdown files and theme components:
+
+```vue
+<script setup>
+import { ref, computed } from 'vue'
+import CustomComponent from './CustomComponent.vue'
+
+const count = ref(0)
+const doubled = computed(() => count.value * 2)
+
+function increment() {
+  count.value++
+}
+</script>
+
+# My Page
+
+Count: {{ count }}
+Doubled: {{ doubled }}
+
+<button @click="increment">Increment</button>
+<CustomComponent />
+```
+
+## Reactivity System
+
+### Refs and Reactive
+
+```vue
+<script setup>
+import { ref, reactive, toRefs } from 'vue'
+
+const count = ref(0)
+const state = reactive({
+  name: 'VitePress',
+  version: '1.0'
+})
+
+const { name, version } = toRefs(state)
+</script>
+
+<template>
+  <div>{{ count }}</div>
+  <div>{{ name }} {{ version }}</div>
+</template>
+```
+
+### Computed Properties
+
+```vue
+<script setup>
+import { ref, computed } from 'vue'
+import { useData } from 'vitepress'
+
+const { frontmatter } = useData()
+
+const pageTitle = computed(() => {
+  return frontmatter.value.title?.toUpperCase() || 'Untitled'
+})
+</script>
+```
+
+### Watchers
+
+```vue
+<script setup>
+import { ref, watch, watchEffect } from 'vue'
+import { useRoute } from 'vitepress'
+
+const route = useRoute()
+const visitCount = ref(0)
+
+// Watch specific value
+watch(() => route.path, (newPath, oldPath) => {
+  console.log(`Navigated from ${oldPath} to ${newPath}`)
+  visitCount.value++
+})
+
+// Watch effect (auto-tracks dependencies)
+watchEffect(() => {
+  console.log(`Current path: ${route.path}`)
+})
+</script>
+```
+
+Reference: `/home/daytona/workspace/source/src/client/theme-default/composables/sidebar.ts:88`
+
+```ts
+watch([page, item, hash], updateIsActiveLink)
+```
+
+## VitePress Composables
+
+### useData
+
+Access site, page, and theme data:
+
+```vue
+<script setup>
+import { useData } from 'vitepress'
+
+const { 
+  site,        // Site-level metadata
+  theme,       // Theme config
+  page,        // Current page data
+  frontmatter, // Page frontmatter
+  params,      // Dynamic route params
+  title,       // Page title
+  description, // Page description
+  lang,        // Language
+  isDark,      // Dark mode state
+  hash         // Current location hash
+} = useData()
+</script>
+
+<template>
+  <div>
+    <h1>{{ title }}</h1>
+    <p>{{ description }}</p>
+    <p>Theme: {{ isDark ? 'Dark' : 'Light' }}</p>
+  </div>
+</template>
+```
+
+Reference: `/home/daytona/workspace/source/src/client/app/data.ts:116`
+
+```ts
+export function useData<T = any>(): VitePressData<T> {
+  const data = inject(dataSymbol)
+  if (!data) {
+    throw new Error('vitepress data not properly injected in app')
+  }
+  return data
+}
+```
+
+### useRoute and useRouter
+
+```vue
+<script setup>
+import { useRoute, useRouter } from 'vitepress'
+import { computed } from 'vue'
+
+const route = useRoute()
+const router = useRouter()
+
+const currentPath = computed(() => route.path)
+
+function navigateHome() {
+  router.go('/')
+}
+
+function navigateWithScroll() {
+  router.go('/guide', { 
+    smoothScroll: true 
+  })
+}
+</script>
+
+<template>
+  <div>
+    <p>Current: {{ currentPath }}</p>
+    <button @click="navigateHome">Home</button>
+  </div>
+</template>
+```
+
+Reference: `/home/daytona/workspace/source/src/client/app/router.ts:248`
+
+```ts
+export function useRouter(): Router {
+  const router = inject(RouterSymbol)
+  if (!router) throw new Error('useRouter() is called without provider.')
+  return router
+}
+
+export function useRoute(): Route {
+  return useRouter().route
+}
+```
+
+### Router API
+
+Reference: `/home/daytona/workspace/source/src/client/app/router.ts:16`
+
+```ts
+export interface Router {
+  route: Route
+  go: (to: string, options?: {
+    smoothScroll?: boolean
+    replace?: boolean
+  }) => Promise<void>
+  onBeforeRouteChange?: (to: string) => Awaitable<void | boolean>
+  onBeforePageLoad?: (to: string) => Awaitable<void | boolean>
+  onAfterPageLoad?: (to: string) => Awaitable<void>
+  onAfterRouteChange?: (to: string) => Awaitable<void>
+}
+```
+
+## Custom Composables
+
+Create reusable composables for VitePress:
+
+```ts composables/useActiveAnchor.ts
+import { ref, computed, onMounted, onUnmounted, Ref } from 'vue'
+import { useRoute } from 'vitepress'
+
+export function useActiveAnchor() {
+  const route = useRoute()
+  const activeAnchor = ref<string | null>(null)
+
+  const isActive = (anchor: string) => {
+    return activeAnchor.value === anchor
+  }
+
+  onMounted(() => {
+    const updateAnchor = () => {
+      activeAnchor.value = route.hash
+    }
+    window.addEventListener('hashchange', updateAnchor)
+    onUnmounted(() => {
+      window.removeEventListener('hashchange', updateAnchor)
+    })
+  })
+
+  return {
+    activeAnchor,
+    isActive
+  }
+}
+```
+
+Reference: `/home/daytona/workspace/source/src/client/theme-default/composables/outline.ts:80`
+
+```ts
+export function useActiveAnchor(
+  container: Ref<HTMLElement>,
+  marker: Ref<HTMLElement>
+): void {
+  const { isAsideEnabled } = useAside()
+  const onScroll = throttleAndDebounce(setActiveLink, 100)
+  // ...
+}
+```
+
+## Lifecycle Hooks
+
+### OnMounted
+
+```vue
+<script setup>
+import { onMounted, ref } from 'vue'
+
+const data = ref(null)
+
+onMounted(async () => {
+  // Runs only in browser after component is mounted
+  data.value = await fetch('/api/data').then(r => r.json())
+})
+</script>
+```
+
+### OnUnmounted
+
+```vue
+<script setup>
+import { onMounted, onUnmounted } from 'vue'
+
+let interval
+
+onMounted(() => {
+  interval = setInterval(() => {
+    console.log('tick')
+  }, 1000)
+})
+
+onUnmounted(() => {
+  clearInterval(interval)
+})
+</script>
+```
+
+Reference: `/home/daytona/workspace/source/src/client/theme-default/composables/outline.ts:100`
+
+```ts
+onMounted(() => {
+  requestAnimationFrame(setActiveLink)
+  window.addEventListener('scroll', onScroll)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll)
+})
+```
+
+### OnUpdated
+
+```vue
+<script setup>
+import { onUpdated } from 'vue'
+import { useRoute } from 'vitepress'
+
+const route = useRoute()
+
+onUpdated(() => {
+  // Runs after component re-renders
+  console.log('Page updated:', route.path)
+})
+</script>
+```
+
+## Provide/Inject
+
+Share data across components:
+
+```vue Theme.vue
+<script setup>
+import { provide, ref } from 'vue'
+
+const activeSection = ref('intro')
+provide('activeSection', activeSection)
+</script>
+```
+
+```vue Component.vue
+<script setup>
+import { inject } from 'vue'
+
+const activeSection = inject('activeSection')
+</script>
+
+<template>
+  <div>Active: {{ activeSection }}</div>
+</template>
+```
+
+Reference: `/home/daytona/workspace/source/src/client/app/data.ts:23`
+
+```ts
+export const dataSymbol: InjectionKey<VitePressData> = Symbol()
+```
+
+## Slots
+
+Use slots in custom components:
+
+```vue Card.vue
+<template>
+  <div class="card">
+    <div class="card-header">
+      <slot name="header">Default Header</slot>
+    </div>
+    <div class="card-body">
+      <slot>Default content</slot>
+    </div>
+    <div class="card-footer">
+      <slot name="footer" :year="2024">
+        <p>Footer {{ year }}</p>
+      </slot>
+    </div>
+  </div>
+</template>
+```
+
+Usage in markdown:
+
+```md
+<Card>
+  <template #header>
+    <h2>Custom Header</h2>
+  </template>
+  
+  Main content here
+  
+  <template #footer="{ year }">
+    <p>Copyright {{ year }}</p>
+  </template>
+</Card>
+```
+
+## Directives
+
+### Built-in Directives
+
+```vue
+<template>
+  <!-- v-if / v-else / v-show -->
+  <div v-if="isDark">Dark mode</div>
+  <div v-else>Light mode</div>
+  <div v-show="isVisible">Conditional visibility</div>
+
+  <!-- v-for -->
+  <ul>
+    <li v-for="item in items" :key="item.id">
+      {{ item.name }}
+    </li>
+  </ul>
+
+  <!-- v-model -->
+  <input v-model="searchQuery" />
+
+  <!-- v-bind / v-on shortcuts -->
+  <a :href="link" @click="handleClick">Link</a>
+</template>
+```
+
+### Custom Directives
+
+```ts directives/focus.ts
+import type { Directive } from 'vue'
+
+export const vFocus: Directive = {
+  mounted(el) {
+    el.focus()
+  }
+}
+```
+
+```vue
+<script setup>
+import { vFocus } from './directives/focus'
+</script>
+
+<template>
+  <input v-focus />
+</template>
+```
+
+## Async Components
+
+```vue
+<script setup>
+import { defineAsyncComponent } from 'vue'
+
+const HeavyComponent = defineAsyncComponent(() =>
+  import('./HeavyComponent.vue')
+)
+</script>
+
+<template>
+  <Suspense>
+    <template #default>
+      <HeavyComponent />
+    </template>
+    <template #fallback>
+      <div>Loading...</div>
+    </template>
+  </Suspense>
+</template>
+```
+
+## Theme Components Example
+
+Example from VitePress default theme:
+
+```ts sidebar.ts
+import { computed, ref, watchEffect, type ComputedRef } from 'vue'
+import { useData } from './data'
+
+export function useSidebarControl() {
+  const isOpen = ref(false)
+
+  function open() {
+    isOpen.value = true
+  }
+
+  function close() {
+    isOpen.value = false
+  }
+
+  function toggle() {
+    isOpen.value ? close() : open()
+  }
+
+  return {
+    isOpen,
+    open,
+    close,
+    toggle
+  }
+}
+```
+
+Reference: `/home/daytona/workspace/source/src/client/theme-default/composables/sidebar.ts:47`
+
+## Performance Optimization
+
+### ShallowRef/ShallowReactive
+
+```vue
+<script setup>
+import { shallowRef, shallowReactive } from 'vue'
+
+// Only track top-level properties
+const largeObject = shallowRef({
+  nested: { /* large data */ }
+})
+
+const config = shallowReactive({
+  theme: 'dark',
+  sidebar: { /* config */ }
+})
+</script>
+```
+
+### Readonly
+
+```ts
+import { readonly } from 'vue'
+import { siteDataRef } from './data'
+
+// Prevent mutations in dev mode
+const siteData = readonly(siteDataRef.value)
+```
+
+Reference: `/home/daytona/workspace/source/src/client/app/data.ts:59`
+
+```ts
+export const siteDataRef: Ref<SiteData> = shallowRef(
+  readonly(siteData) as SiteData
+)
+```
+
+### MarkRaw
+
+```ts
+import { markRaw } from 'vue'
+
+// Don't make component reactive
+route.component = markRaw(comp)
+```
+
+Reference: `/home/daytona/workspace/source/src/client/app/router.ts:111`
+
+```ts
+route.component = markRaw(comp)
+```
+
+## TypeScript Support
+
+### Typed Composables
+
+```ts
+import { useData } from 'vitepress'
+import type { DefaultTheme } from 'vitepress/theme'
+
+// Type the theme config
+const { theme } = useData<DefaultTheme.Config>()
+
+// theme.value is fully typed
+const nav = theme.value.nav
+const sidebar = theme.value.sidebar
+```
+
+### Component Props
+
+```vue MyComponent.vue
+<script setup lang="ts">
+interface Props {
+  title: string
+  count?: number
+  items: string[]
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  count: 0
+})
+
+const emit = defineEmits<{
+  update: [value: number]
+  delete: [id: string]
+}>()
+</script>
+```
+
+<Warning>
+Make sure your components are SSR-compatible. See [SSR Compatibility](/advanced/ssr-compat) for details.
+</Warning>

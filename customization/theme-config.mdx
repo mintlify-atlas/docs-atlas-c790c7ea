@@ -1,0 +1,999 @@
+---
+title: Default Theme Configuration
+description: Configure VitePress default theme options
+---
+
+# Default Theme Configuration
+
+The default theme configuration is set via the `themeConfig` option in your config file. These options control the appearance and behavior of the default VitePress theme.
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    logo: '/logo.svg',
+    nav: [...],
+    sidebar: {...}
+  }
+})
+```
+
+<Note>
+  These options only apply to the default theme. Custom themes receive this config object but may handle it differently.
+</Note>
+
+## Site Branding
+
+### logo
+
+<ParamField path="logo" type="ThemeableImage">
+  Logo file displayed in the nav bar, before the site title.
+</ParamField>
+
+<Tabs>
+  <Tab title="Simple Logo">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        logo: '/logo.svg'
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="With Alt Text">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        logo: {
+          src: '/logo.svg',
+          alt: 'My Company Logo'
+        }
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Light/Dark Mode">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        logo: {
+          light: '/logo-light.svg',
+          dark: '/logo-dark.svg',
+          alt: 'Logo'
+        }
+      }
+    })
+    ```
+  </Tab>
+</Tabs>
+
+```ts
+type ThemeableImage =
+  | string
+  | { src: string; alt?: string }
+  | { light: string; dark: string; alt?: string }
+```
+
+### logoLink
+
+<ParamField path="logoLink" type="string | { link?: string; rel?: string; target?: string }">
+  Override the link when clicking the logo.
+</ParamField>
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    logoLink: 'https://example.com'
+  }
+})
+
+// Or with attributes
+export default defineConfig({
+  themeConfig: {
+    logoLink: {
+      link: 'https://example.com',
+      target: '_blank',
+      rel: 'noopener'
+    }
+  }
+})
+```
+
+### siteTitle
+
+<ParamField path="siteTitle" type="string | false">
+  Customize the site title in the nav bar. Set to `false` to hide it (useful when logo contains text).
+</ParamField>
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    siteTitle: 'My Custom Title'
+  }
+})
+
+// Hide title
+export default defineConfig({
+  themeConfig: {
+    siteTitle: false
+  }
+})
+```
+
+## Navigation
+
+### nav
+
+<ParamField path="nav" type="NavItem[]">
+  Navigation menu items displayed in the header.
+</ParamField>
+
+<Tabs>
+  <Tab title="Simple Links">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        nav: [
+          { text: 'Guide', link: '/guide/' },
+          { text: 'API', link: '/api/' },
+          { text: 'Changelog', link: '/changelog' }
+        ]
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Dropdown Menu">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        nav: [
+          { text: 'Guide', link: '/guide/' },
+          {
+            text: 'Reference',
+            items: [
+              { text: 'API', link: '/api/' },
+              { text: 'Config', link: '/config/' },
+              { text: 'CLI', link: '/cli/' }
+            ]
+          }
+        ]
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Nested Dropdown">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        nav: [
+          {
+            text: 'Docs',
+            items: [
+              {
+                text: 'Getting Started',
+                items: [
+                  { text: 'Introduction', link: '/intro' },
+                  { text: 'Installation', link: '/install' }
+                ]
+              },
+              {
+                text: 'Advanced',
+                items: [
+                  { text: 'Deployment', link: '/deploy' },
+                  { text: 'SSR', link: '/ssr' }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Active State">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        nav: [
+          {
+            text: 'Guide',
+            link: '/guide/',
+            activeMatch: '/guide/' // Regex pattern
+          },
+          {
+            text: 'API',
+            link: '/api/',
+            activeMatch: '^/api/'
+          }
+        ]
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Dynamic Links">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        nav: [
+          {
+            text: 'Version',
+            link: (pageData) => {
+              return `/v${pageData.frontmatter.version}/`
+            }
+          }
+        ]
+      }
+    })
+    ```
+  </Tab>
+</Tabs>
+
+```ts
+type NavItem = NavItemWithLink | NavItemWithChildren
+
+interface NavItemWithLink {
+  text: string
+  link: string | ((payload: PageData) => string)
+  activeMatch?: string
+  target?: string
+  rel?: string
+  noIcon?: boolean
+}
+
+interface NavItemWithChildren {
+  text?: string
+  items: (NavItemChildren | NavItemWithLink)[]
+  activeMatch?: string
+}
+```
+
+### sidebar
+
+<ParamField path="sidebar" type="Sidebar">
+  Sidebar navigation configuration. Can be a simple array or multi-sidebar object.
+</ParamField>
+
+<Tabs>
+  <Tab title="Simple Sidebar">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        sidebar: [
+          {
+            text: 'Guide',
+            items: [
+              { text: 'Introduction', link: '/intro' },
+              { text: 'Getting Started', link: '/getting-started' }
+            ]
+          },
+          {
+            text: 'Reference',
+            items: [
+              { text: 'API', link: '/api' },
+              { text: 'Config', link: '/config' }
+            ]
+          }
+        ]
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Multi-Sidebar">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        sidebar: {
+          '/guide/': [
+            {
+              text: 'Guide',
+              items: [
+                { text: 'Introduction', link: '/guide/intro' },
+                { text: 'Installation', link: '/guide/install' }
+              ]
+            }
+          ],
+          '/api/': [
+            {
+              text: 'API Reference',
+              items: [
+                { text: 'Methods', link: '/api/methods' },
+                { text: 'Types', link: '/api/types' }
+              ]
+            }
+          ]
+        }
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Collapsible Groups">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        sidebar: [
+          {
+            text: 'Guide',
+            collapsed: false, // Expanded by default
+            items: [
+              { text: 'Introduction', link: '/intro' }
+            ]
+          },
+          {
+            text: 'Advanced',
+            collapsed: true, // Collapsed by default
+            items: [
+              { text: 'SSR', link: '/ssr' }
+            ]
+          }
+        ]
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="With Base Path">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        sidebar: {
+          '/guide/': {
+            base: '/guide/',
+            items: [
+              {
+                text: 'Guide',
+                items: [
+                  { text: 'Introduction', link: 'intro' }, // Becomes /guide/intro
+                  { text: 'Install', link: 'install' } // Becomes /guide/install
+                ]
+              }
+            ]
+          }
+        }
+      }
+    })
+    ```
+  </Tab>
+</Tabs>
+
+```ts
+type Sidebar = SidebarItem[] | SidebarMulti
+
+interface SidebarMulti {
+  [path: string]: SidebarItem[] | { items: SidebarItem[]; base: string }
+}
+
+interface SidebarItem {
+  text?: string
+  link?: string
+  items?: SidebarItem[]
+  collapsed?: boolean
+  base?: string
+  docFooterText?: string
+  rel?: string
+  target?: string
+}
+```
+
+## Social Links
+
+### socialLinks
+
+<ParamField path="socialLinks" type="SocialLink[]">
+  Social media links displayed at the end of the nav bar.
+</ParamField>
+
+<Tabs>
+  <Tab title="Built-in Icons">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        socialLinks: [
+          { icon: 'github', link: 'https://github.com/vuejs/vitepress' },
+          { icon: 'twitter', link: 'https://twitter.com/vuejs' },
+          { icon: 'discord', link: 'https://discord.gg/vue' },
+          { icon: 'facebook', link: 'https://facebook.com/...' },
+          { icon: 'instagram', link: 'https://instagram.com/...' },
+          { icon: 'linkedin', link: 'https://linkedin.com/...' },
+          { icon: 'slack', link: 'https://slack.com/...' },
+          { icon: 'youtube', link: 'https://youtube.com/...' }
+        ]
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Custom SVG Icon">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        socialLinks: [
+          {
+            icon: {
+              svg: '<svg>...</svg>'
+            },
+            link: 'https://example.com',
+            ariaLabel: 'Custom Platform'
+          }
+        ]
+      }
+    })
+    ```
+  </Tab>
+</Tabs>
+
+```ts
+interface SocialLink {
+  icon: SocialLinkIcon
+  link: string
+  ariaLabel?: string
+}
+
+type SocialLinkIcon = string | { svg: string }
+```
+
+## Page Layout
+
+### aside
+
+<ParamField path="aside" type="boolean | 'left'" default="true">
+  Control the aside container position. Can be overridden per page via frontmatter.
+</ParamField>
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    aside: 'left' // Render aside on the left
+  }
+})
+
+// Disable aside globally
+export default defineConfig({
+  themeConfig: {
+    aside: false
+  }
+})
+```
+
+### outline
+
+<ParamField path="outline" type="Outline | number | [number, number] | 'deep' | false" default="2">
+  Configure the outline (table of contents) in the aside.
+</ParamField>
+
+<Tabs>
+  <Tab title="Level Range">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        outline: [2, 3] // Show h2 and h3 headings
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Deep Outline">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        outline: 'deep' // Show all headings (2-6)
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Custom Label">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        outline: {
+          level: [2, 3],
+          label: 'Table of Contents'
+        }
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Disable">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        outline: false
+      }
+    })
+    ```
+  </Tab>
+</Tabs>
+
+```ts
+interface Outline {
+  level?: number | [number, number] | 'deep'
+  label?: string
+}
+```
+
+## Page Features
+
+### editLink
+
+<ParamField path="editLink" type="EditLink">
+  Configure the "Edit this page" link.
+</ParamField>
+
+<Tabs>
+  <Tab title="GitHub">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        editLink: {
+          pattern: 'https://github.com/user/repo/edit/main/docs/:path',
+          text: 'Edit this page on GitHub'
+        }
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="GitLab">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        editLink: {
+          pattern: 'https://gitlab.com/user/repo/-/edit/main/docs/:path',
+          text: 'Edit this page on GitLab'
+        }
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Dynamic Pattern">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        editLink: {
+          pattern: ({ filePath }) => {
+            if (filePath.startsWith('packages/')) {
+              return `https://github.com/user/monorepo/edit/main/${filePath}`
+            }
+            return `https://github.com/user/docs/edit/main/${filePath}`
+          }
+        }
+      }
+    })
+    ```
+  </Tab>
+</Tabs>
+
+```ts
+interface EditLink {
+  pattern: string | ((payload: PageData) => string)
+  text?: string
+}
+```
+
+### lastUpdated
+
+<ParamField path="lastUpdated" type="LastUpdatedOptions">
+  Configure the last updated timestamp display.
+</ParamField>
+
+```ts
+export default defineConfig({
+  lastUpdated: true, // Enable Git timestamps
+  themeConfig: {
+    lastUpdated: {
+      text: 'Updated at',
+      formatOptions: {
+        dateStyle: 'full',
+        timeStyle: 'medium'
+      }
+    }
+  }
+})
+```
+
+```ts
+interface LastUpdatedOptions {
+  text?: string
+  formatOptions?: Intl.DateTimeFormatOptions & { forceLocale?: boolean }
+}
+```
+
+### docFooter
+
+<ParamField path="docFooter" type="DocFooter">
+  Customize prev/next page navigation labels.
+</ParamField>
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    docFooter: {
+      prev: 'Previous',
+      next: 'Next'
+    }
+  }
+})
+
+// Disable prev/next navigation
+export default defineConfig({
+  themeConfig: {
+    docFooter: {
+      prev: false,
+      next: false
+    }
+  }
+})
+```
+
+```ts
+interface DocFooter {
+  prev?: string | boolean
+  next?: string | boolean
+}
+```
+
+## Search
+
+### search
+
+<ParamField path="search" type="LocalSearchOptions | AlgoliaSearchOptions">
+  Configure local search or Algolia DocSearch.
+</ParamField>
+
+<Tabs>
+  <Tab title="Local Search">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        search: {
+          provider: 'local',
+          options: {
+            detailedView: true,
+            translations: {
+              button: {
+                buttonText: 'Search',
+                buttonAriaLabel: 'Search docs'
+              },
+              modal: {
+                displayDetails: 'Display detailed list',
+                resetButtonTitle: 'Reset search',
+                backButtonTitle: 'Close search',
+                noResultsText: 'No results for',
+                footer: {
+                  selectText: 'to select',
+                  selectKeyAriaLabel: 'enter',
+                  navigateText: 'to navigate',
+                  navigateUpKeyAriaLabel: 'up arrow',
+                  navigateDownKeyAriaLabel: 'down arrow',
+                  closeText: 'to close',
+                  closeKeyAriaLabel: 'escape'
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Algolia">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        search: {
+          provider: 'algolia',
+          options: {
+            appId: 'YOUR_APP_ID',
+            apiKey: 'YOUR_API_KEY',
+            indexName: 'YOUR_INDEX_NAME',
+            placeholder: 'Search docs',
+            translations: {
+              button: {
+                buttonText: 'Search'
+              }
+            }
+          }
+        }
+      }
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Multi-locale">
+    ```ts
+    export default defineConfig({
+      themeConfig: {
+        search: {
+          provider: 'local',
+          options: {
+            locales: {
+              zh: {
+                translations: {
+                  button: {
+                    buttonText: '搜索',
+                    buttonAriaLabel: '搜索文档'
+                  }
+                }
+              },
+              es: {
+                translations: {
+                  button: {
+                    buttonText: 'Buscar',
+                    buttonAriaLabel: 'Buscar documentos'
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+    ```
+  </Tab>
+</Tabs>
+
+## Footer
+
+### footer
+
+<ParamField path="footer" type="Footer">
+  Configure the page footer.
+</ParamField>
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2024-present My Company'
+    }
+  }
+})
+```
+
+```ts
+interface Footer {
+  message?: string
+  copyright?: string
+}
+```
+
+## Ads & Monetization
+
+### carbonAds
+
+<ParamField path="carbonAds" type="CarbonAdsOptions">
+  Configure Carbon Ads integration.
+</ParamField>
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    carbonAds: {
+      code: 'your-carbon-code',
+      placement: 'your-carbon-placement'
+    }
+  }
+})
+```
+
+```ts
+interface CarbonAdsOptions {
+  code: string
+  placement: string
+}
+```
+
+## Internationalization
+
+### i18nRouting
+
+<ParamField path="i18nRouting" type="boolean" default="true">
+  Control locale-based URL routing behavior.
+</ParamField>
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    i18nRouting: false // Disable automatic locale routing
+  }
+})
+```
+
+## Accessibility Labels
+
+### darkModeSwitchLabel
+
+<ParamField path="darkModeSwitchLabel" type="string" default="Appearance">
+  Aria label for the appearance switch in mobile view.
+</ParamField>
+
+### lightModeSwitchTitle
+
+<ParamField path="lightModeSwitchTitle" type="string" default="Switch to light theme">
+  Title for the light mode switch.
+</ParamField>
+
+### darkModeSwitchTitle
+
+<ParamField path="darkModeSwitchTitle" type="string" default="Switch to dark theme">
+  Title for the dark mode switch.
+</ParamField>
+
+### sidebarMenuLabel
+
+<ParamField path="sidebarMenuLabel" type="string" default="Menu">
+  Aria label for the sidebar menu in mobile view.
+</ParamField>
+
+### returnToTopLabel
+
+<ParamField path="returnToTopLabel" type="string" default="Return to top">
+  Aria label for the return to top button.
+</ParamField>
+
+### langMenuLabel
+
+<ParamField path="langMenuLabel" type="string" default="Change language">
+  Aria label for the language menu button.
+</ParamField>
+
+### skipToContentLabel
+
+<ParamField path="skipToContentLabel" type="string" default="Skip to content">
+  Label for the skip to content link.
+</ParamField>
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    darkModeSwitchLabel: 'Theme',
+    lightModeSwitchTitle: 'Switch to light',
+    darkModeSwitchTitle: 'Switch to dark',
+    sidebarMenuLabel: 'Navigation',
+    returnToTopLabel: 'Back to top',
+    langMenuLabel: 'Languages',
+    skipToContentLabel: 'Skip navigation'
+  }
+})
+```
+
+## 404 Page
+
+### notFound
+
+<ParamField path="notFound" type="NotFoundOptions">
+  Customize the 404 page.
+</ParamField>
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    notFound: {
+      title: 'PAGE NOT FOUND',
+      quote: 'The page you are looking for does not exist.',
+      linkLabel: 'go to home',
+      linkText: 'Take me home',
+      code: '404'
+    }
+  }
+})
+```
+
+```ts
+interface NotFoundOptions {
+  title?: string
+  quote?: string
+  link?: string
+  linkLabel?: string
+  linkText?: string
+  code?: string
+}
+```
+
+## External Link Icon
+
+### externalLinkIcon
+
+<ParamField path="externalLinkIcon" type="boolean" default="false">
+  Show external link icon in Markdown links.
+</ParamField>
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    externalLinkIcon: true
+  }
+})
+```
+
+## Complete Example
+
+```ts
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  themeConfig: {
+    // Branding
+    logo: { light: '/logo-light.svg', dark: '/logo-dark.svg' },
+    siteTitle: 'My Docs',
+    
+    // Navigation
+    nav: [
+      { text: 'Guide', link: '/guide/' },
+      {
+        text: 'Reference',
+        items: [
+          { text: 'API', link: '/api/' },
+          { text: 'Config', link: '/config/' }
+        ]
+      }
+    ],
+    
+    sidebar: {
+      '/guide/': [
+        {
+          text: 'Introduction',
+          items: [
+            { text: 'What is it?', link: '/guide/what-is-it' },
+            { text: 'Getting Started', link: '/quickstart' }
+          ]
+        }
+      ]
+    },
+    
+    // Social
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/...' },
+      { icon: 'twitter', link: 'https://twitter.com/...' }
+    ],
+    
+    // Page features
+    editLink: {
+      pattern: 'https://github.com/user/repo/edit/main/docs/:path',
+      text: 'Edit this page'
+    },
+    
+    lastUpdated: {
+      text: 'Last updated',
+      formatOptions: {
+        dateStyle: 'short',
+        timeStyle: 'short'
+      }
+    },
+    
+    // Search
+    search: {
+      provider: 'local'
+    },
+    
+    // Footer
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2024-present'
+    }
+  }
+})
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Site Configuration" icon="gear" href="./configuration">
+    Configure global site settings
+  </Card>
+  
+  <Card title="Extending Default Theme" icon="puzzle-piece" href="./extending-default-theme">
+    Customize with CSS, components, and layout slots
+  </Card>
+</CardGroup>

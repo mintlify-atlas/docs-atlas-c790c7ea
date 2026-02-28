@@ -1,0 +1,407 @@
+---
+title: Asset Handling
+description: Learn how VitePress handles static assets, images, fonts, and other files with automatic optimization and path resolution.
+---
+
+# Asset Handling
+
+VitePress leverages Vite's powerful asset handling system to automatically process, optimize, and bundle your static assets.
+
+## Referencing Static Assets
+
+All Markdown files are compiled into Vue components and processed by Vite, enabling sophisticated asset handling.
+
+### Relative URLs
+
+Reference assets using relative paths from your markdown files:
+
+```markdown
+![Product Screenshot](./images/screenshot.png)
+```
+
+<Note>
+VitePress processes assets using Vite's asset pipeline. Common image, media, and font filetypes are automatically detected and included as assets.
+</Note>
+
+### How Assets Are Processed
+
+<Steps>
+  <Step title="Detection">
+    VitePress automatically detects references to images, fonts, videos, and other media files in:
+    - Markdown files
+    - Vue components in your theme
+    - CSS and style files
+  </Step>
+  
+  <Step title="Optimization">
+    During production builds:
+    - Assets are copied to the output directory with hashed filenames
+    - Images smaller than 4KB are base64-inlined
+    - Unreferenced assets are not copied
+  </Step>
+  
+  <Step title="Path Resolution">
+    Asset paths are automatically adjusted based on your `base` configuration
+  </Step>
+</Steps>
+
+### Size Threshold Configuration
+
+Customize the inlining threshold via Vite config:
+
+```typescript
+// .vitepress/config.ts
+export default {
+  vite: {
+    build: {
+      assetsInlineLimit: 4096 // bytes
+    }
+  }
+}
+```
+
+## The Public Directory
+
+The `public` directory is for static assets that should be served as-is without processing.
+
+### Structure
+
+```
+docs/
+├─ .vitepress/
+│  └─ config.ts
+├─ public/
+│  ├─ favicon.ico
+│  ├─ robots.txt
+│  └─ images/
+│     └─ logo.png
+└─ guide/
+   └─ index.md
+```
+
+### When to Use Public Directory
+
+<Tabs>
+  <Tab title="Use Public For">
+    - `robots.txt`, `sitemap.xml`
+    - Favicons and PWA icons
+    - Files that must keep their exact filename
+    - Large assets not referenced in source
+    - Legacy assets with hardcoded URLs
+  </Tab>
+  
+  <Tab title="Don't Use Public For">
+    - Images referenced in markdown (use relative paths)
+    - Component assets (import them)
+    - Fonts loaded via CSS (use relative imports)
+    - Assets that benefit from versioning
+  </Tab>
+</Tabs>
+
+### Referencing Public Assets
+
+<Warning>
+Always reference public directory files using root absolute paths.
+</Warning>
+
+```markdown
+<!-- public/icon.png -->
+![Icon](/icon.png)
+
+<!-- public/images/logo.png -->
+![Logo](/images/logo.png)
+```
+
+## Base URL Configuration
+
+When deploying to a non-root URL, configure the `base` option:
+
+```typescript
+// .vitepress/config.ts
+export default {
+  base: '/my-project/'
+}
+```
+
+### Automatic Path Adjustment
+
+<Accordion title="How Base URL Works">
+All static asset paths are automatically adjusted for the `base` value:
+
+**In Markdown:**
+```markdown
+![Image](/image.png)
+```
+
+**Becomes:**
+```html
+<img src="/my-project/image.png" alt="Image">
+```
+
+No manual path updates needed when changing `base`!
+</Accordion>
+
+### Dynamic Paths in Components
+
+For dynamic asset paths in Vue components, use the `withBase` helper:
+
+<CodeGroup>
+```vue Without Helper
+<script setup>
+import { useData } from 'vitepress'
+
+const { theme } = useData()
+</script>
+
+<template>
+  <!-- Won't work with base URL -->
+  <img :src="theme.logoPath" />
+</template>
+```
+
+```vue With Helper
+<script setup>
+import { withBase, useData } from 'vitepress'
+
+const { theme } = useData()
+</script>
+
+<template>
+  <!-- Correctly handles base URL -->
+  <img :src="withBase(theme.logoPath)" />
+</template>
+```
+</CodeGroup>
+
+<Tip>
+The `withBase` helper is available at `src/client/app/utils.ts` and automatically prepends the configured base path.
+</Tip>
+
+## Importing Assets in Components
+
+Import assets directly in Vue components for optimal processing:
+
+### Images
+
+```vue
+<script setup>
+import logo from './assets/logo.png'
+</script>
+
+<template>
+  <img :src="logo" alt="Logo" />
+</template>
+```
+
+### Fonts
+
+```css
+@font-face {
+  font-family: 'CustomFont';
+  src: url('./fonts/custom-font.woff2') format('woff2');
+}
+```
+
+### JSON and Other Data
+
+```typescript
+import data from './data.json'
+
+console.log(data)
+```
+
+## Image Optimization
+
+VitePress provides several ways to optimize images:
+
+### Lazy Loading
+
+Enable lazy loading for all markdown images:
+
+```typescript
+// .vitepress/config.ts
+export default {
+  markdown: {
+    image: {
+      lazyLoading: true
+    }
+  }
+}
+```
+
+<Note>
+Implementation details in `src/node/markdown/plugins/image.ts`
+</Note>
+
+### Responsive Images
+
+Use the `<picture>` element for responsive images:
+
+```vue
+<picture>
+  <source 
+    srcset="/images/hero-mobile.webp" 
+    media="(max-width: 768px)" 
+    type="image/webp"
+  />
+  <source 
+    srcset="/images/hero-desktop.webp" 
+    media="(min-width: 769px)" 
+    type="image/webp"
+  />
+  <img 
+    src="/images/hero-desktop.jpg" 
+    alt="Hero Image"
+  />
+</picture>
+```
+
+### External Image Optimization
+
+Integrate with image optimization services:
+
+```typescript
+// .vitepress/config.ts
+export default {
+  transformHtml(code, id, ctx) {
+    // Transform img tags to use CDN
+    return code.replace(
+      /<img src="\/(.*?)" /g,
+      '<img src="https://cdn.example.com/$1" '
+    )
+  }
+}
+```
+
+## Asset Handling Strategies
+
+### Development vs Production
+
+<Tabs>
+  <Tab title="Development">
+    - Assets served directly from source
+    - No hashing or optimization
+    - Fast hot module replacement
+    - Source maps enabled
+  </Tab>
+  
+  <Tab title="Production">
+    - Assets copied to `dist` directory
+    - Filenames hashed for cache busting
+    - Small assets inlined as base64
+    - Minification and optimization applied
+  </Tab>
+</Tabs>
+
+### Best Practices
+
+<Steps>
+  <Step title="Use Relative Paths">
+    Prefer relative paths in markdown for portability:
+    ```markdown
+    ![Diagram](./diagrams/architecture.png)
+    ```
+  </Step>
+  
+  <Step title="Organize by Feature">
+    Keep assets close to where they're used:
+    ```
+    guide/
+    ├─ getting-started.md
+    ├─ images/
+    │  ├─ installation.png
+    │  └─ first-run.png
+    └─ api.md
+    ```
+  </Step>
+  
+  <Step title="Optimize Before Committing">
+    Use tools like ImageOptim or TinyPNG before adding images to your repository
+  </Step>
+  
+  <Step title="Use Modern Formats">
+    Prefer WebP over JPEG/PNG for better compression:
+    ```vue
+    <picture>
+      <source srcset="image.webp" type="image/webp">
+      <img src="image.jpg" alt="Fallback">
+    </picture>
+    ```
+  </Step>
+</Steps>
+
+## Special Asset Types
+
+### SVG Files
+
+SVGs can be used as images or imported as components:
+
+<CodeGroup>
+```markdown As Image
+![Icon](./icon.svg)
+```
+
+```vue As Component
+<script setup>
+import IconComponent from './icon.svg?component'
+</script>
+
+<template>
+  <IconComponent class="my-icon" />
+</template>
+```
+</CodeGroup>
+
+### Video Files
+
+```markdown
+<video controls>
+  <source src="./demo.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+```
+
+### Downloadable Files
+
+<Warning>
+Linked files (PDFs, ZIPs, etc.) are not automatically treated as assets. Place them in the `public` directory.
+</Warning>
+
+```markdown
+<!-- public/downloads/manual.pdf -->
+[Download User Manual](/downloads/manual.pdf)
+```
+
+## Troubleshooting
+
+### Asset Not Found
+
+If assets aren't loading:
+
+1. Check the file path is correct relative to the markdown file
+2. Verify the file exists in your source directory
+3. Ensure the file extension is included
+4. Check for typos in the filename (paths are case-sensitive)
+
+### Base URL Issues
+
+If assets work locally but not in production:
+
+1. Verify `base` is correctly set in config
+2. Use `withBase()` for dynamic paths in components
+3. Check that public assets use absolute paths starting with `/`
+
+### Build Output
+
+Inspect the build output to verify asset processing:
+
+```bash
+vitepress build docs
+```
+
+Look for asset entries in the build log:
+
+```
+dist/assets/image-abc123.png  45.67 kB
+dist/assets/style-def456.css  12.34 kB
+```

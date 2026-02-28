@@ -1,97 +1,154 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: VitePress - Vite & Vue Powered Static Site Generator
+description: Get started with VitePress, a fast and flexible static site generator built on Vite and Vue
 ---
 
-## Setting up
+# Welcome to VitePress
 
-Get your documentation site up and running in minutes.
+VitePress is a **Vue-powered static site generator** and the spiritual successor to VuePress. Built on top of Vite, it delivers lightning-fast development experience and optimized production builds for your documentation sites.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+<Note>
+VitePress is designed specifically for building fast, content-focused websites. It's perfect for documentation, blogs, and marketing sites.
+</Note>
 
-## Make it yours
+## Why VitePress?
 
-Design a docs site that looks great and empowers your users.
+VitePress combines the best of modern web development:
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Lightning Fast" icon="bolt">
+    Powered by Vite for instant server start and lightning-fast hot module replacement (HMR)
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  
+  <Card title="Vue-Powered" icon="code">
+    Use Vue components in Markdown and leverage the full power of Vue's reactive system
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  
+  <Card title="File-Based Routing" icon="folder">
+    Automatic routing based on your file structure - no configuration needed
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  
+  <Card title="Optimized Builds" icon="rocket">
+    Static HTML for each page with aggressive performance optimizations out of the box
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Key Features
 
-Everything you need to create world-class documentation.
+### Built for Performance
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+VitePress generates static HTML for each page, then loads it as a single-page application (SPA). This approach ensures:
 
-## Need inspiration?
+- **Fast initial load**: Static HTML is served immediately
+- **Smooth navigation**: Client-side routing for instant page transitions
+- **SEO friendly**: Full HTML content for search engine crawlers
+- **Optimized assets**: Automatic code splitting and lazy loading
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+### Markdown-First
+
+Write your content in Markdown with powerful extensions:
+
+- GitHub-flavored markdown syntax
+- Custom containers for tips, warnings, and more
+- Code syntax highlighting with Shiki
+- Emoji support and automatic table of contents
+- Frontmatter for page metadata
+
+### Customizable Theme
+
+VitePress ships with a beautiful default theme that's ready to use:
+
+- Responsive design that works on all devices
+- Dark mode support out of the box
+- Algolia DocSearch integration
+- Customizable navigation and sidebar
+- Or build your own custom theme from scratch
+
+## Quick Links
+
+Ready to get started? Choose your path:
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="play" href="./quickstart">
+    Install VitePress and create your first site in minutes
+  </Card>
+  
+  <Card title="Routing Guide" icon="route" href="./routing">
+    Learn how file-based routing works and how to organize your content
+  </Card>
+  
+  <Card title="Deployment" icon="upload" href="./deploying">
+    Deploy your VitePress site to popular hosting platforms
+  </Card>
+  
+  <Card title="Configuration" icon="settings" href="/configuration">
+    Customize your site with VitePress configuration options
+  </Card>
+</CardGroup>
+
+## What Makes VitePress Different?
+
+<Tabs>
+  <Tab title="vs VuePress">
+    VitePress is the spiritual successor to VuePress, rebuilt from the ground up:
+    
+    - **Faster**: Uses Vite instead of webpack for 10-100x faster dev server
+    - **Simpler**: Focused specifically on documentation sites
+    - **Modern**: Built with Vue 3 and the composition API
+    - **Lighter**: Smaller bundle sizes and better performance
+  </Tab>
+  
+  <Tab title="vs Other SSGs">
+    VitePress stands out among static site generators:
+    
+    - **Vue ecosystem**: Native Vue component support in Markdown
+    - **Developer experience**: Instant HMR and fast builds with Vite
+    - **Built for docs**: Optimized specifically for documentation sites
+    - **Type-safe**: Full TypeScript support throughout
+  </Tab>
+</Tabs>
+
+## Example Sites
+
+VitePress powers documentation for major projects:
+
+- **Vite** - Next generation frontend tooling
+- **Vue.js** - The progressive JavaScript framework
+- **Vitest** - Blazing fast unit test framework
+- **Rollup** - JavaScript module bundler
+
+<Warning>
+VitePress is currently in alpha. The API is stable but minor breaking changes may occur between releases.
+</Warning>
+
+## System Requirements
+
+Before you begin, make sure you have:
+
+- **Node.js** version 18 or higher
+- A terminal for accessing the VitePress CLI
+- A text editor (VS Code recommended with the Vue extension)
+
+## Next Steps
+
+Ready to build your documentation site?
+
+<Steps>
+  <Step title="Install VitePress">
+    Head to the [Quick Start guide](./quickstart) to install VitePress and scaffold your first project
+  </Step>
+  
+  <Step title="Learn the Basics">
+    Explore [file-based routing](./routing) and learn how to structure your content
+  </Step>
+  
+  <Step title="Deploy Your Site">
+    Follow the [deployment guide](./deploying) to publish your site to the web
+  </Step>
+</Steps>
+
+---
+
+<Tip>
+New to static site generators? VitePress makes it easy. Start with the [Quick Start guide](./quickstart) and you'll have a site running in minutes.
+</Tip>

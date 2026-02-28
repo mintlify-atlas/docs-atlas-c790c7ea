@@ -1,0 +1,509 @@
+---
+title: Markdown API
+description: Markdown processing and markdown-it integration APIs
+---
+
+# Markdown API
+
+VitePress provides APIs for working with markdown processing, including markdown-it integration and custom plugins.
+
+## createMarkdownRenderer()
+
+Create a markdown-it renderer instance with VitePress defaults and plugins.
+
+### Function Signature
+
+```typescript
+export async function createMarkdownRenderer(
+  srcDir: string,
+  options?: MarkdownOptions,
+  base?: string,
+  logger?: Pick<Logger, 'warn'>
+): Promise<MarkdownRenderer>
+
+type MarkdownRenderer = MarkdownItAsync
+```
+
+### Parameters
+
+<ParamField path="srcDir" type="string">
+  The source directory containing markdown files. Used for resolving relative paths and code snippets.
+</ParamField>
+
+<ParamField path="options" type="MarkdownOptions" optional>
+  Markdown processing options.
+  
+  <ParamField path="options.theme" type="ThemeOptions" optional>
+    Syntax highlighting theme. Can be a single theme or an object with `light` and `dark` themes.
+    
+    ```typescript
+    // Single theme
+    theme: 'github-dark'
+    
+    // Dual themes
+    theme: {
+      light: 'github-light',
+      dark: 'github-dark'
+    }
+    ```
+  </ParamField>
+  
+  <ParamField path="options.languages" type="(LanguageInput | BuiltinLanguage)[]" optional>
+    Additional languages for syntax highlighting.
+    
+    ```typescript
+    languages: ['ruby', 'rust']
+    ```
+  </ParamField>
+  
+  <ParamField path="options.lineNumbers" type="boolean" optional default="false">
+    Show line numbers in code blocks.
+  </ParamField>
+  
+  <ParamField path="options.config" type="(md: MarkdownItAsync) => Awaitable<void>" optional>
+    Callback to configure the markdown-it instance.
+  </ParamField>
+  
+  <ParamField path="options.anchor" type="AnchorOptions" optional>
+    Options for markdown-it-anchor plugin.
+  </ParamField>
+  
+  <ParamField path="options.attrs" type="MarkdownItAttrsOptions" optional>
+    Options for markdown-it-attrs plugin.
+  </ParamField>
+  
+  <ParamField path="options.frontmatter" type="FrontmatterPluginOptions" optional>
+    Options for frontmatter parsing.
+  </ParamField>
+  
+  <ParamField path="options.headers" type="HeadersPluginOptions | boolean" optional>
+    Options for header extraction. Set to `false` to disable.
+  </ParamField>
+  
+  <ParamField path="options.math" type="boolean | any" optional default="false">
+    Enable math equations support. Requires `markdown-it-mathjax3` to be installed.
+  </ParamField>
+  
+  <ParamField path="options.gfmAlerts" type="boolean" optional default="true">
+    Enable GitHub-flavored alerts (note, tip, warning, etc.).
+  </ParamField>
+</ParamField>
+
+<ParamField path="base" type="string" optional default="'/'">
+  Base URL for the site. Used for resolving relative links.
+</ParamField>
+
+<ParamField path="logger" type="Pick<Logger, 'warn'>" optional>
+  Logger instance for warnings. Defaults to `console`.
+</ParamField>
+
+### Return Value
+
+<ResponseField name="md" type="MarkdownRenderer">
+  A markdown-it instance configured with VitePress defaults and plugins.
+  
+  The instance is async-compatible and includes:
+  - Syntax highlighting with Shiki
+  - Frontmatter parsing
+  - Header extraction
+  - Custom containers
+  - Code snippets
+  - Image processing
+  - And more
+</ResponseField>
+
+### Examples
+
+#### Basic Usage
+
+```typescript
+import { createMarkdownRenderer } from 'vitepress'
+
+const md = await createMarkdownRenderer('./docs')
+
+const html = await md.renderAsync('# Hello World')
+console.log(html)
+// <h1 id="hello-world" tabindex="-1">Hello World <a class="header-anchor" href="#hello-world" aria-label="Permalink to &quot;Hello World&quot;">​</a></h1>
+```
+
+#### With Custom Theme
+
+```typescript
+import { createMarkdownRenderer } from 'vitepress'
+
+const md = await createMarkdownRenderer('./docs', {
+  theme: 'material-theme-palenight',
+  lineNumbers: true
+})
+
+const code = '```js\nconsole.log("Hello")\n```'
+const html = await md.renderAsync(code)
+```
+
+#### With Custom Plugin
+
+```typescript
+import { createMarkdownRenderer } from 'vitepress'
+import customPlugin from 'markdown-it-custom'
+
+const md = await createMarkdownRenderer('./docs', {
+  config: (md) => {
+    md.use(customPlugin, {
+      // plugin options
+    })
+  }
+})
+```
+
+#### Render with Frontmatter
+
+```typescript
+import { createMarkdownRenderer } from 'vitepress'
+
+const md = await createMarkdownRenderer('./docs')
+
+const markdown = `---
+title: My Page
+---
+
+# Content`
+
+const env = {}
+const html = await md.renderAsync(markdown, env)
+
+console.log(env.frontmatter)
+// { title: 'My Page' }
+```
+
+---
+
+## Markdown Options
+
+### Syntax Highlighting
+
+<ParamField path="theme" type="ThemeOptions" optional>
+  Shiki theme for syntax highlighting.
+  
+  **Type:**
+  ```typescript
+  type ThemeOptions =
+    | ThemeRegistrationAny
+    | BuiltinTheme
+    | {
+        light: ThemeRegistrationAny | BuiltinTheme
+        dark: ThemeRegistrationAny | BuiltinTheme
+      }
+  ```
+  
+  **Examples:**
+  ```typescript
+  // Built-in theme
+  theme: 'nord'
+  
+  // Dual themes
+  theme: {
+    light: 'github-light',
+    dark: 'github-dark'
+  }
+  
+  // Custom theme
+  theme: {
+    name: 'my-theme',
+    // ... theme definition
+  }
+  ```
+</ParamField>
+
+<ParamField path="languages" type="(LanguageInput | BuiltinLanguage)[]" optional>
+  Additional languages to load for syntax highlighting.
+  
+  See [Shiki languages](https://shiki.style/languages) for available languages.
+</ParamField>
+
+<ParamField path="languageAlias" type="Record<string, string>" optional>
+  Custom language aliases. Maps custom names to existing languages.
+  
+  ```typescript
+  languageAlias: {
+    'my_lang': 'python'
+  }
+  ```
+</ParamField>
+
+<ParamField path="defaultHighlightLang" type="string" optional>
+  Fallback language when the specified language is not available.
+</ParamField>
+
+<ParamField path="codeTransformers" type="ShikiTransformer[]" optional>
+  Shiki transformers for code blocks.
+  
+  See [Shiki transformers](https://shiki.style/guide/transformers) for details.
+</ParamField>
+
+<ParamField path="shikiSetup" type="(shiki: Highlighter) => void | Promise<void>" optional>
+  Callback to set up the Shiki highlighter instance.
+</ParamField>
+
+### Markdown-It Plugins
+
+<ParamField path="anchor" type="AnchorOptions" optional>
+  Options for [markdown-it-anchor](https://github.com/valeriangalliat/markdown-it-anchor).
+  
+  Controls heading anchor generation.
+</ParamField>
+
+<ParamField path="attrs" type="MarkdownItAttrsOptions & { disable?: boolean }" optional>
+  Options for [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs).
+  
+  Allows adding attributes to markdown elements.
+  
+  ```markdown
+  # Heading {#custom-id}
+  
+  ![Image](./image.png){width=500}
+  ```
+</ParamField>
+
+<ParamField path="emoji" type="object" optional>
+  Options for emoji support.
+  
+  <ParamField path="emoji.defs" type="Record<string, string>" optional>
+    Custom emoji definitions
+  </ParamField>
+  
+  <ParamField path="emoji.enabled" type="string[]" optional>
+    List of enabled emoji
+  </ParamField>
+  
+  <ParamField path="emoji.shortcuts" type="Record<string, string | string[]>" optional>
+    Emoji shortcuts
+  </ParamField>
+</ParamField>
+
+<ParamField path="container" type="ContainerOptions" optional>
+  Options for custom containers (`::: tip`, `::: warning`, etc.).
+</ParamField>
+
+<ParamField path="math" type="boolean | any" optional default="false">
+  Enable math equations support.
+  
+  Requires installing `markdown-it-mathjax3`:
+  ```bash
+  npm install markdown-it-mathjax3
+  ```
+  
+  Usage:
+  ```markdown
+  Inline: $E = mc^2$
+  
+  Block:
+  $$
+  \frac{1}{2}
+  $$
+  ```
+</ParamField>
+
+### VitePress Features
+
+<ParamField path="gfmAlerts" type="boolean" optional default="true">
+  Enable GitHub-flavored alerts.
+  
+  ```markdown
+  > [!NOTE]
+  > Highlights information
+  
+  > [!TIP]
+  > Helpful advice
+  
+  > [!IMPORTANT]
+  > Key information
+  
+  > [!WARNING]
+  > Urgent warning
+  
+  > [!CAUTION]
+  > Negative potential consequences
+  ```
+</ParamField>
+
+<ParamField path="image" type="ImageOptions" optional>
+  Options for image processing.
+</ParamField>
+
+<ParamField path="cjkFriendlyEmphasis" type="boolean" optional default="true">
+  Enable CJK-friendly emphasis marks.
+  
+  Adds support for **bold** in Japanese, Chinese, and Korean text.
+</ParamField>
+
+### Advanced Configuration
+
+<ParamField path="preConfig" type="(md: MarkdownItAsync) => Awaitable<void>" optional>
+  Setup markdown-it instance before applying VitePress plugins.
+  
+  ```typescript
+  preConfig: (md) => {
+    // Configure before VitePress plugins
+  }
+  ```
+</ParamField>
+
+<ParamField path="config" type="(md: MarkdownItAsync) => Awaitable<void>" optional>
+  Setup markdown-it instance after applying VitePress plugins.
+  
+  ```typescript
+  config: (md) => {
+    md.use(myPlugin)
+  }
+  ```
+</ParamField>
+
+<ParamField path="cache" type="boolean" optional>
+  Disable markdown cache (experimental).
+</ParamField>
+
+<ParamField path="externalLinks" type="Record<string, string>" optional>
+  Default attributes for external links.
+  
+  ```typescript
+  externalLinks: {
+    target: '_blank',
+    rel: 'noopener noreferrer'
+  }
+  ```
+</ParamField>
+
+---
+
+## Built-in Plugins
+
+VitePress includes the following markdown-it plugins by default:
+
+### Core Plugins
+
+- **@mdit-vue/plugin-component** - Vue component support
+- **@mdit-vue/plugin-frontmatter** - Frontmatter parsing
+- **@mdit-vue/plugin-headers** - Header extraction
+- **@mdit-vue/plugin-sfc** - SFC block extraction
+- **@mdit-vue/plugin-title** - Title extraction
+- **@mdit-vue/plugin-toc** - Table of contents
+
+### Enhancement Plugins
+
+- **markdown-it-anchor** - Heading anchors
+- **markdown-it-attrs** - Attribute support
+- **markdown-it-emoji** - Emoji support
+
+### VitePress Plugins
+
+- **preWrapper** - Code block wrapper
+- **snippet** - Code snippet import
+- **container** - Custom containers
+- **image** - Image processing
+- **link** - Link processing
+- **lineNumbers** - Line numbers in code
+- **gitHubAlerts** - GitHub-flavored alerts
+
+---
+
+## Examples
+
+### Custom Renderer with Math
+
+```typescript
+import { createMarkdownRenderer } from 'vitepress'
+
+const md = await createMarkdownRenderer('./docs', {
+  math: true,
+  theme: {
+    light: 'github-light',
+    dark: 'github-dark'
+  }
+})
+
+const markdown = `
+# Math Example
+
+Inline: $E = mc^2$
+
+Block:
+$$
+\\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}
+$$
+`
+
+const html = await md.renderAsync(markdown)
+```
+
+### Adding Custom Plugin
+
+```typescript
+import { createMarkdownRenderer } from 'vitepress'
+import markdownItTaskLists from 'markdown-it-task-lists'
+
+const md = await createMarkdownRenderer('./docs', {
+  config: (md) => {
+    md.use(markdownItTaskLists, {
+      enabled: true
+    })
+  }
+})
+
+const markdown = `
+- [x] Completed task
+- [ ] Incomplete task
+`
+
+const html = await md.renderAsync(markdown)
+```
+
+### Custom Code Transformers
+
+```typescript
+import { createMarkdownRenderer } from 'vitepress'
+import type { ShikiTransformer } from '@shikijs/types'
+
+const highlightLinesTransformer: ShikiTransformer = {
+  name: 'highlight-lines',
+  line(node, line) {
+    if (line === 3) {
+      this.addClassToHast(node, 'highlighted')
+    }
+  }
+}
+
+const md = await createMarkdownRenderer('./docs', {
+  codeTransformers: [highlightLinesTransformer]
+})
+```
+
+---
+
+## Content Loader
+
+### createContentLoader()
+
+Create a data loader for markdown content.
+
+```typescript
+import { createContentLoader, type ContentData } from 'vitepress'
+
+export default createContentLoader('posts/*.md', {
+  includeSrc: true,
+  render: true,
+  excerpt: true,
+  transform(data: ContentData[]) {
+    return data.sort((a, b) => {
+      return +new Date(b.frontmatter.date) - +new Date(a.frontmatter.date)
+    })
+  }
+})
+```
+
+See the [Data Loading guide](/guide/data-loading) for more details.
+
+## Related
+
+- [Markdown Extensions](/guide/markdown) - Built-in markdown features
+- [Configuration Reference](/api/site-config#markdown) - Markdown config options
+- [Using Vue in Markdown](/advanced/using-vue) - Vue component integration

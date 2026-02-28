@@ -1,0 +1,742 @@
+---
+title: Site Configuration
+description: Complete guide to VitePress site configuration
+---
+
+# Site Configuration
+
+Site configuration is where you define global settings for your VitePress site. The config file is located at `.vitepress/config.js` (or `.ts`, `.mjs`, `.mts`) and controls everything from metadata to build options.
+
+## Basic Setup
+
+### Config File Location
+
+VitePress looks for your configuration file at:
+
+```
+<root>/.vitepress/config.[ext]
+```
+
+Supported extensions: `.js`, `.ts`, `.mjs`, `.mts`
+
+### Using defineConfig
+
+The `defineConfig` helper provides TypeScript-powered intellisense:
+
+<CodeGroup>
+```ts .vitepress/config.ts
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  title: 'My Documentation',
+  description: 'A VitePress site',
+  base: '/'
+})
+```
+
+```js .vitepress/config.js
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  title: 'My Documentation',
+  description: 'A VitePress site',
+  base: '/'
+})
+```
+</CodeGroup>
+
+<Note>
+TypeScript is supported out of the box - no additional configuration needed.
+</Note>
+
+### Dynamic Configuration
+
+You can export an async function for dynamic configuration:
+
+```ts
+import { defineConfig } from 'vitepress'
+
+export default async () => {
+  const data = await fetchSomeData()
+  
+  return defineConfig({
+    title: data.title,
+    description: data.description
+  })
+}
+```
+
+Or use top-level `await`:
+
+```ts
+import { defineConfig } from 'vitepress'
+
+const data = await fetchSomeData()
+
+export default defineConfig({
+  title: data.title,
+  description: data.description
+})
+```
+
+## Site Metadata
+
+### title
+
+<ParamField path="title" type="string" default="VitePress">
+  The title for your site. Displayed in the nav bar and used as the suffix for page titles.
+</ParamField>
+
+```ts
+export default defineConfig({
+  title: 'My Awesome Docs'
+})
+```
+
+With this configuration and a page containing `# Hello`, the page title becomes:
+```
+Hello | My Awesome Docs
+```
+
+### titleTemplate
+
+<ParamField path="titleTemplate" type="string | boolean">
+  Customize the page title suffix or format. Use `:title` as a placeholder for the page title.
+</ParamField>
+
+```ts
+export default defineConfig({
+  title: 'My Docs',
+  titleTemplate: ':title - Custom Suffix'
+})
+```
+
+Set to `false` to disable title suffixes:
+
+```ts
+export default defineConfig({
+  titleTemplate: false
+})
+```
+
+### description
+
+<ParamField path="description" type="string" default="A VitePress site">
+  Site description. Renders as a `<meta>` tag in the page HTML.
+</ParamField>
+
+```ts
+export default defineConfig({
+  description: 'Comprehensive documentation for my project'
+})
+```
+
+### lang
+
+<ParamField path="lang" type="string" default="en-US">
+  The language attribute for the site. Renders as `<html lang="...">`.
+</ParamField>
+
+```ts
+export default defineConfig({
+  lang: 'en-US'
+})
+```
+
+### head
+
+<ParamField path="head" type="HeadConfig[]" default="[]">
+  Additional elements to render in the `<head>` tag.
+</ParamField>
+
+```ts
+type HeadConfig =
+  | [string, Record<string, string>]
+  | [string, Record<string, string>, string]
+```
+
+#### Add a Favicon
+
+```ts
+export default defineConfig({
+  head: [
+    ['link', { rel: 'icon', href: '/favicon.ico' }]
+  ]
+})
+```
+
+#### Add Google Fonts
+
+```ts
+export default defineConfig({
+  head: [
+    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+    ['link', { 
+      rel: 'preconnect', 
+      href: 'https://fonts.gstatic.com', 
+      crossorigin: '' 
+    }],
+    ['link', { 
+      href: 'https://fonts.googleapis.com/css2?family=Roboto&display=swap', 
+      rel: 'stylesheet' 
+    }]
+  ]
+})
+```
+
+#### Add Analytics
+
+```ts
+export default defineConfig({
+  head: [
+    ['script', { 
+      async: '', 
+      src: 'https://www.googletagmanager.com/gtag/js?id=TAG_ID' 
+    }],
+    ['script', {}, `
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'TAG_ID');
+    `]
+  ]
+})
+```
+
+## Directory Structure
+
+### base
+
+<ParamField path="base" type="string" default="/">
+  The base URL for deployment. Required when deploying to a subdirectory.
+</ParamField>
+
+```ts
+export default defineConfig({
+  base: '/my-project/'
+})
+```
+
+<Warning>
+  The base must start and end with a slash. It's automatically prepended to all URLs that start with `/`.
+</Warning>
+
+### srcDir
+
+<ParamField path="srcDir" type="string" default=".">
+  The directory where your markdown pages are stored, relative to project root.
+</ParamField>
+
+```ts
+export default defineConfig({
+  srcDir: './src'
+})
+```
+
+### outDir
+
+<ParamField path="outDir" type="string" default="./.vitepress/dist">
+  The build output location, relative to project root.
+</ParamField>
+
+```ts
+export default defineConfig({
+  outDir: '../public'
+})
+```
+
+### assetsDir
+
+<ParamField path="assetsDir" type="string" default="assets">
+  Directory to nest generated assets under. Must be inside `outDir`.
+</ParamField>
+
+```ts
+export default defineConfig({
+  assetsDir: 'static'
+})
+```
+
+### cacheDir
+
+<ParamField path="cacheDir" type="string" default="./.vitepress/cache">
+  Directory for cache files, relative to project root.
+</ParamField>
+
+```ts
+export default defineConfig({
+  cacheDir: './.vitepress/.vite'
+})
+```
+
+### srcExclude
+
+<ParamField path="srcExclude" type="string[]">
+  Glob patterns for markdown files to exclude from source content.
+</ParamField>
+
+```ts
+export default defineConfig({
+  srcExclude: ['**/README.md', '**/TODO.md']
+})
+```
+
+## Routing
+
+### cleanUrls
+
+<ParamField path="cleanUrls" type="boolean" default="false">
+  Remove trailing `.html` from URLs.
+</ParamField>
+
+```ts
+export default defineConfig({
+  cleanUrls: true
+})
+```
+
+<Warning>
+  Your server must be able to serve `/foo.html` when visiting `/foo` without a redirect.
+</Warning>
+
+### rewrites
+
+<ParamField path="rewrites" type="Record<string, string>">
+  Define custom directory to URL mappings.
+</ParamField>
+
+```ts
+export default defineConfig({
+  rewrites: {
+    'source/:page': 'destination/:page',
+    'packages/:pkg/README.md': ':pkg/index.md'
+  }
+})
+```
+
+## Theming
+
+### appearance
+
+<ParamField path="appearance" type="boolean | 'dark' | 'force-dark' | 'force-auto' | UseDarkOptions" default="true">
+  Control dark mode behavior.
+</ParamField>
+
+<Tabs>
+  <Tab title="Auto (Default)">
+    ```ts
+    export default defineConfig({
+      appearance: true // User can toggle, follows system preference
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Dark by Default">
+    ```ts
+    export default defineConfig({
+      appearance: 'dark' // Dark by default, user can toggle
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Force Dark">
+    ```ts
+    export default defineConfig({
+      appearance: 'force-dark' // Always dark, no toggle
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Force Auto">
+    ```ts
+    export default defineConfig({
+      appearance: 'force-auto' // Follows system, no toggle
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Advanced">
+    ```ts
+    export default defineConfig({
+      appearance: {
+        initialValue: 'dark',
+        // Additional VueUse UseDark options
+      }
+    })
+    ```
+  </Tab>
+</Tabs>
+
+### scrollOffset
+
+<ParamField path="scrollOffset" type="number | string | string[] | { selector: string | string[]; padding: number }" default="134">
+  Configure scroll offset for sticky headers.
+</ParamField>
+
+```ts
+export default defineConfig({
+  scrollOffset: 100 // pixels
+})
+
+// Or use a selector
+export default defineConfig({
+  scrollOffset: '.navbar'
+})
+
+// Or multiple selectors with fallback
+export default defineConfig({
+  scrollOffset: ['.navbar', '.header']
+})
+
+// Or with custom padding
+export default defineConfig({
+  scrollOffset: {
+    selector: '.navbar',
+    padding: 20
+  }
+})
+```
+
+## Build Options
+
+### ignoreDeadLinks
+
+<ParamField path="ignoreDeadLinks" type="boolean | 'localhostLinks' | (string | RegExp | Function)[]" default="false">
+  Control how dead links are handled during build.
+</ParamField>
+
+<Tabs>
+  <Tab title="Ignore All">
+    ```ts
+    export default defineConfig({
+      ignoreDeadLinks: true
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Ignore Localhost">
+    ```ts
+    export default defineConfig({
+      ignoreDeadLinks: 'localhostLinks'
+    })
+    ```
+  </Tab>
+  
+  <Tab title="Pattern Matching">
+    ```ts
+    export default defineConfig({
+      ignoreDeadLinks: [
+        '/playground',
+        /^https?:\/\/localhost/,
+        /\/repl\//,
+        (url) => url.toLowerCase().includes('ignore')
+      ]
+    })
+    ```
+  </Tab>
+</Tabs>
+
+### lastUpdated
+
+<ParamField path="lastUpdated" type="boolean" default="false">
+  Get last updated timestamp for each page using Git.
+</ParamField>
+
+```ts
+export default defineConfig({
+  lastUpdated: true
+})
+```
+
+### mpa (Experimental)
+
+<ParamField path="mpa" type="boolean" default="false">
+  Build in MPA mode (Multi-Page Application). Ships 0kb JavaScript but disables client-side navigation.
+</ParamField>
+
+```ts
+export default defineConfig({
+  mpa: true
+})
+```
+
+### metaChunk (Experimental)
+
+<ParamField path="metaChunk" type="boolean" default="false">
+  Extract page metadata to separate JavaScript chunks for better caching.
+</ParamField>
+
+```ts
+export default defineConfig({
+  metaChunk: true
+})
+```
+
+### buildConcurrency (Experimental)
+
+<ParamField path="buildConcurrency" type="number" default="64">
+  Configure build concurrency. Lower values reduce memory usage but increase build time.
+</ParamField>
+
+```ts
+export default defineConfig({
+  buildConcurrency: 32
+})
+```
+
+## Integrations
+
+### vite
+
+<ParamField path="vite" type="ViteConfig">
+  Pass configuration to the internal Vite dev server/bundler.
+</ParamField>
+
+```ts
+export default defineConfig({
+  vite: {
+    plugins: [myVitePlugin()],
+    server: {
+      port: 3000
+    },
+    build: {
+      chunkSizeWarningLimit: 1000
+    }
+  }
+})
+```
+
+### vue
+
+<ParamField path="vue" type="VuePluginOptions">
+  Pass options to `@vitejs/plugin-vue`.
+</ParamField>
+
+```ts
+export default defineConfig({
+  vue: {
+    template: {
+      compilerOptions: {
+        isCustomElement: (tag) => tag.startsWith('custom-')
+      }
+    }
+  }
+})
+```
+
+### markdown
+
+<ParamField path="markdown" type="MarkdownOptions">
+  Configure Markdown-it parser and Shiki syntax highlighting.
+</ParamField>
+
+```ts
+export default defineConfig({
+  markdown: {
+    lineNumbers: true,
+    theme: 'github-dark',
+    config: (md) => {
+      md.use(myMarkdownPlugin)
+    }
+  }
+})
+```
+
+## Build Hooks
+
+### buildEnd
+
+<ParamField path="buildEnd" type="(siteConfig: SiteConfig) => Awaitable<void>">
+  Hook called after build finishes but before CLI process exits.
+</ParamField>
+
+```ts
+export default defineConfig({
+  async buildEnd(siteConfig) {
+    // Generate sitemap, search index, etc.
+    console.log('Build completed!')
+  }
+})
+```
+
+### postRender
+
+<ParamField path="postRender" type="(context: SSGContext) => Awaitable<SSGContext | void>">
+  Hook called when SSG rendering is done. Handle teleports content.
+</ParamField>
+
+```ts
+export default defineConfig({
+  async postRender(context) {
+    // Process teleported content
+    return context
+  }
+})
+```
+
+### transformHead
+
+<ParamField path="transformHead" type="(context: TransformContext) => Awaitable<HeadConfig[]>">
+  Transform head before generating each page. Return extra head entries to merge.
+</ParamField>
+
+```ts
+export default defineConfig({
+  async transformHead(context) {
+    return [
+      ['meta', { property: 'og:title', content: context.title }],
+      ['meta', { property: 'og:description', content: context.description }]
+    ]
+  }
+})
+```
+
+### transformHtml
+
+<ParamField path="transformHtml" type="(code: string, id: string, context: TransformContext) => Awaitable<string | void>">
+  Transform HTML content before saving to disk.
+</ParamField>
+
+```ts
+export default defineConfig({
+  async transformHtml(code, id, context) {
+    // Modify HTML content
+    return code.replace(/foo/g, 'bar')
+  }
+})
+```
+
+### transformPageData
+
+<ParamField path="transformPageData" type="(pageData: PageData, context: TransformPageContext) => Awaitable<Partial<PageData>>">
+  Transform page data for each page. Can directly mutate or return values to merge.
+</ParamField>
+
+```ts
+export default defineConfig({
+  async transformPageData(pageData) {
+    pageData.contributors = await getContributors(pageData.relativePath)
+    
+    // Or return data to merge
+    return {
+      readingTime: calculateReadingTime(pageData.content)
+    }
+  }
+})
+```
+
+## Advanced Features
+
+### Config Extension
+
+<ParamField path="extends" type="UserConfig">
+  Extend another configuration file.
+</ParamField>
+
+```ts
+import baseConfig from './base.config'
+
+export default defineConfig({
+  extends: baseConfig,
+  title: 'Extended Config'
+})
+```
+
+### Sitemap Generation (Experimental)
+
+<ParamField path="sitemap" type="SitemapStreamOptions & { hostname: string }">
+  Configure automatic sitemap generation.
+</ParamField>
+
+```ts
+export default defineConfig({
+  sitemap: {
+    hostname: 'https://example.com',
+    transformItems: (items) => {
+      // Filter or modify sitemap items
+      return items.filter(item => !item.url.includes('secret'))
+    }
+  }
+})
+```
+
+### Content Props
+
+<ParamField path="contentProps" type="Record<string, any>">
+  Props to pass to the content component.
+</ParamField>
+
+```ts
+export default defineConfig({
+  contentProps: {
+    customProp: 'value'
+  }
+})
+```
+
+### Router Configuration
+
+<ParamField path="router" type="{ prefetchLinks?: boolean }">
+  Configure router behavior.
+</ParamField>
+
+```ts
+export default defineConfig({
+  router: {
+    prefetchLinks: false // Disable link prefetching
+  }
+})
+```
+
+## TypeScript Configuration
+
+### Custom Theme Config Type
+
+For custom themes, use `defineConfig` with a generic type:
+
+```ts
+import { defineConfig } from 'vitepress'
+import type { ThemeConfig } from 'your-theme'
+
+export default defineConfig<ThemeConfig>({
+  themeConfig: {
+    // Typed according to ThemeConfig
+  }
+})
+```
+
+### Environment-Specific Config
+
+Access command and mode via function config:
+
+```ts
+import { defineConfig } from 'vitepress'
+
+export default defineConfig(async ({ command, mode }) => {
+  if (command === 'serve') {
+    return {
+      // Dev-specific config
+    }
+  } else {
+    return {
+      // Build-specific config
+    }
+  }
+})
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Theme Configuration" icon="palette" href="./theme-config">
+    Configure the default theme's appearance and behavior
+  </Card>
+  
+  <Card title="Custom Theme" icon="paintbrush" href="./custom-theme">
+    Create a completely custom theme
+  </Card>
+  
+  <Card title="Extending Default Theme" icon="puzzle-piece" href="./extending-default-theme">
+    Customize the default theme with slots and overrides
+  </Card>
+</CardGroup>

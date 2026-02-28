@@ -1,0 +1,397 @@
+---
+title: Composables
+description: Vue composables for accessing route, data, and router in VitePress
+---
+
+# Composables
+
+VitePress provides several Vue composables that give you access to app data, routing, and theme configuration.
+
+## Core Composables
+
+### useData
+
+Access page-level and site-level data.
+
+```ts
+import { useData } from 'vitepress'
+
+const { site, page, frontmatter, theme, isDark, lang, title } = useData()
+```
+
+**Returns:** `VitePressData<T>`
+
+<ResponseField name="site" type="Ref<SiteData<T>>">
+  Site-level metadata and configuration
+</ResponseField>
+
+<ResponseField name="theme" type="Ref<T>">
+  The `themeConfig` from `.vitepress/config.js`
+</ResponseField>
+
+<ResponseField name="page" type="Ref<PageData>">
+  Current page metadata including frontmatter, headers, and file paths
+</ResponseField>
+
+<ResponseField name="frontmatter" type="Ref<Record<string, any>>">
+  Frontmatter data for the current page
+</ResponseField>
+
+<ResponseField name="params" type="Ref<Record<string, any>>">
+  Dynamic route parameters (for data loading)
+</ResponseField>
+
+<ResponseField name="title" type="Ref<string>">
+  Current page title (computed from frontmatter or first h1)
+</ResponseField>
+
+<ResponseField name="description" type="Ref<string>">
+  Current page description
+</ResponseField>
+
+<ResponseField name="lang" type="Ref<string>">
+  Current language code
+</ResponseField>
+
+<ResponseField name="dir" type="Ref<string>">
+  Text direction (`ltr` or `rtl`)
+</ResponseField>
+
+<ResponseField name="localeIndex" type="Ref<string>">
+  Current locale index (e.g., `'root'`, `'zh'`, `'en'`)
+</ResponseField>
+
+<ResponseField name="isDark" type="Ref<boolean>">
+  Whether dark mode is currently active
+</ResponseField>
+
+<ResponseField name="hash" type="Ref<string>">
+  Current location hash (e.g., `#introduction`)
+</ResponseField>
+
+**Example Usage:**
+
+<CodeGroup>
+```vue Theme Component
+<script setup>
+import { useData } from 'vitepress'
+
+const { theme, isDark } = useData()
+</script>
+
+<template>
+  <nav :class="{ dark: isDark }">
+    <a :href="theme.socialLinks.github">GitHub</a>
+  </nav>
+</template>
+```
+
+```vue Page Component
+<script setup>
+import { useData } from 'vitepress'
+
+const { frontmatter, page } = useData()
+</script>
+
+<template>
+  <div>
+    <h1>{{ page.title }}</h1>
+    <div v-if="frontmatter.author">
+      By {{ frontmatter.author }}
+    </div>
+  </div>
+</template>
+```
+</CodeGroup>
+
+---
+
+### useRoute
+
+Access the current route information.
+
+```ts
+import { useRoute } from 'vitepress'
+
+const route = useRoute()
+```
+
+**Returns:** `Route` (reactive object)
+
+<ResponseField name="path" type="string">
+  Current URL path (e.g., `/guide/introduction.html`)
+</ResponseField>
+
+<ResponseField name="hash" type="string">
+  Current URL hash (e.g., `#heading-anchor`)
+</ResponseField>
+
+<ResponseField name="query" type="string">
+  Current URL query string (e.g., `?tab=1&view=grid`)
+</ResponseField>
+
+<ResponseField name="data" type="PageData">
+  Current page data object
+</ResponseField>
+
+<ResponseField name="component" type="Component | null">
+  Current page component
+</ResponseField>
+
+**Example Usage:**
+
+```vue
+<script setup>
+import { useRoute, watch } from 'vitepress'
+
+const route = useRoute()
+
+// Track page views on route change
+watch(() => route.path, (newPath) => {
+  analytics.trackPageView(newPath)
+})
+</script>
+
+<template>
+  <div>Current page: {{ route.data.title }}</div>
+</template>
+```
+
+---
+
+### useRouter
+
+Access the router instance for programmatic navigation.
+
+```ts
+import { useRouter } from 'vitepress'
+
+const router = useRouter()
+```
+
+**Returns:** `Router`
+
+<ResponseField name="route" type="Route">
+  Current route object (same as `useRoute()`)
+</ResponseField>
+
+<ResponseField name="go" type="(to: string, options?) => Promise<void>">
+  Navigate to a new URL
+</ResponseField>
+
+**Navigation Options:**
+
+<ParamField path="to" type="string" required>
+  The URL to navigate to
+</ParamField>
+
+<ParamField path="options.smoothScroll" type="boolean" default="false">
+  Whether to smoothly scroll to the target position
+</ParamField>
+
+<ParamField path="options.replace" type="boolean" default="false">
+  Whether to replace the current history entry instead of pushing a new one
+</ParamField>
+
+**Router Hooks:**
+
+<ResponseField name="onBeforeRouteChange" type="(to: string) => Awaitable<void | boolean>">
+  Called before the route changes. Return `false` to cancel navigation.
+</ResponseField>
+
+<ResponseField name="onBeforePageLoad" type="(to: string) => Awaitable<void | boolean>">
+  Called before the page component loads. Return `false` to cancel.
+</ResponseField>
+
+<ResponseField name="onAfterPageLoad" type="(to: string) => Awaitable<void>">
+  Called after the page component loads but before update.
+</ResponseField>
+
+<ResponseField name="onAfterRouteChange" type="(to: string) => Awaitable<void>">
+  Called after the route changes.
+</ResponseField>
+
+**Example Usage:**
+
+<CodeGroup>
+```ts Programmatic Navigation
+import { useRouter } from 'vitepress'
+
+const router = useRouter()
+
+// Navigate to a page
+router.go('/quickstart')
+
+// Navigate with smooth scroll
+router.go('/api/config#appearance', { smoothScroll: true })
+
+// Replace current history entry
+router.go('/new-page', { replace: true })
+```
+
+```ts Router Hooks
+import { useRouter } from 'vitepress'
+
+const router = useRouter()
+
+// Confirm navigation
+router.onBeforeRouteChange = async (to) => {
+  if (hasUnsavedChanges()) {
+    return confirm('You have unsaved changes. Leave anyway?')
+  }
+}
+
+// Track page loads
+router.onAfterPageLoad = async (to) => {
+  await trackPageLoad(to)
+}
+
+// Update document title
+router.onAfterRouteChange = async (to) => {
+  updatePageTitle(to)
+}
+```
+
+```ts Analytics Integration
+import { useRouter } from 'vitepress'
+
+const router = useRouter()
+
+router.onAfterRouteChange = (to) => {
+  // Send page view to analytics
+  gtag('config', 'GA_MEASUREMENT_ID', {
+    page_path: to
+  })
+}
+```
+</CodeGroup>
+
+---
+
+## Type Definitions
+
+### VitePressData
+
+```ts
+interface VitePressData<T = any> {
+  site: Ref<SiteData<T>>
+  theme: Ref<T>
+  page: Ref<PageData>
+  frontmatter: Ref<PageData['frontmatter']>
+  params: Ref<PageData['params']>
+  title: Ref<string>
+  description: Ref<string>
+  lang: Ref<string>
+  dir: Ref<string>
+  localeIndex: Ref<string>
+  isDark: Ref<boolean>
+  hash: Ref<string>
+}
+```
+
+### Route
+
+```ts
+interface Route {
+  path: string
+  hash: string
+  query: string
+  data: PageData
+  component: Component | null
+}
+```
+
+### Router
+
+```ts
+interface Router {
+  route: Route
+  go: (to: string, options?: {
+    smoothScroll?: boolean
+    replace?: boolean
+  }) => Promise<void>
+  onBeforeRouteChange?: (to: string) => Awaitable<void | boolean>
+  onBeforePageLoad?: (to: string) => Awaitable<void | boolean>
+  onAfterPageLoad?: (to: string) => Awaitable<void>
+  onAfterRouteChange?: (to: string) => Awaitable<void>
+}
+```
+
+### PageData
+
+```ts
+interface PageData {
+  relativePath: string
+  filePath: string
+  title: string
+  titleTemplate?: string | boolean
+  description: string
+  headers: Header[]
+  frontmatter: Record<string, any>
+  params?: Record<string, any>
+  isNotFound?: boolean
+  lastUpdated?: number
+}
+```
+
+### SiteData
+
+```ts
+interface SiteData<ThemeConfig = any> {
+  base: string
+  cleanUrls?: boolean
+  lang: string
+  dir: string
+  title: string
+  titleTemplate?: string | boolean
+  description: string
+  head: HeadConfig[]
+  appearance: boolean | 'dark' | 'force-dark' | 'force-auto'
+  themeConfig: ThemeConfig
+  scrollOffset: number | string | string[]
+  locales: LocaleConfig<ThemeConfig>
+  localeIndex?: string
+  contentProps?: Record<string, any>
+}
+```
+
+---
+
+## Usage Tips
+
+<Tip>
+**Reactive Updates**: All data returned from composables is reactive. Use Vue's `watch` or `watchEffect` to respond to changes.
+</Tip>
+
+<Warning>
+**SSR Compatibility**: When using these composables, ensure your code handles SSR correctly. Use `onMounted` for browser-only logic.
+</Warning>
+
+<CodeGroup>
+```vue Reactive Example
+<script setup>
+import { useData, watchEffect } from 'vitepress'
+
+const { isDark } = useData()
+
+watchEffect(() => {
+  // Runs whenever isDark changes
+  document.body.classList.toggle('dark', isDark.value)
+})
+</script>
+```
+
+```vue SSR-Safe Example
+<script setup>
+import { useData, onMounted } from 'vitepress'
+
+const { page } = useData()
+
+onMounted(() => {
+  // Safe to use browser APIs here
+  console.log('Current page:', page.value.title)
+  window.scrollTo(0, 0)
+})
+</script>
+```
+</CodeGroup>

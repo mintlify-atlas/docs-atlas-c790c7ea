@@ -1,0 +1,558 @@
+---
+title: Build-Time Data Loading
+description: Learn how to use VitePress data loaders to fetch remote data and generate content at build time for optimal performance.
+---
+
+# Build-Time Data Loading
+
+VitePress provides a powerful data loader feature that loads arbitrary data at build time, serializes it as JSON, and makes it available to your pages and components.
+
+## Overview
+
+Data loaders enable you to:
+
+- Fetch data from remote APIs
+- Generate metadata from local files
+- Parse content collections (blog posts, docs, etc.)
+- Build search indexes
+- Create dynamic navigation
+
+<Note>
+Data loading happens **only at build time**. The resulting data is serialized as JSON and inlined in the client bundle.
+</Note>
+
+## Basic Usage
+
+A data loader file must end with `.data.js` or `.data.ts` and export a default object with a `load()` method.
+
+<Steps>
+  <Step title="Create Data Loader">
+    ```typescript
+    // posts.data.ts
+    export default {
+      load() {
+        return {
+          posts: [
+            { title: 'First Post', slug: 'first-post' },
+            { title: 'Second Post', slug: 'second-post' }
+          ]
+        }
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Import in Markdown">
+    ```markdown
+    <script setup>
+    import { data } from './posts.data.js'
+    </script>
+    
+    # All Posts
+    
+    <ul>
+      <li v-for="post in data.posts" :key="post.slug">
+        {{ post.title }}
+      </li>
+    </ul>
+    ```
+  </Step>
+  
+  <Step title="Import in Components">
+    ```vue
+    <script setup>
+    import { data } from './posts.data.js'
+    
+    console.log(data.posts)
+    </script>
+    
+    <template>
+      <div v-for="post in data.posts" :key="post.slug">
+        <h3>{{ post.title }}</h3>
+      </div>
+    </template>
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+The data loader itself does not export `data`. VitePress calls the `load()` method behind the scenes and implicitly exposes the result via the `data` named export.
+</Warning>
+
+## Async Data Loading
+
+Data loaders support async operations:
+
+```typescript
+// remote-posts.data.ts
+export default {
+  async load() {
+    const response = await fetch('https://api.example.com/posts')
+    const posts = await response.json()
+    
+    return {
+      posts,
+      fetchedAt: new Date().toISOString()
+    }
+  }
+}
+```
+
+## Loading Local Files
+
+When loading from local files, use the `watch` option to enable hot module replacement:
+
+```typescript
+// blog-posts.data.ts
+import fs from 'node:fs'
+import { parse } from 'csv-parse/sync'
+
+export default {
+  watch: ['./data/*.csv'],
+  load(watchedFiles) {
+    // watchedFiles is an array of absolute paths
+    return watchedFiles.map((file) => {
+      const content = fs.readFileSync(file, 'utf-8')
+      return parse(content, {
+        columns: true,
+        skip_empty_lines: true
+      })
+    })
+  }
+}
+```
+
+<Accordion title="How Watch Works">
+- The `watch` option accepts [glob patterns](https://github.com/mrmlnc/fast-glob#pattern-syntax)
+- Patterns are relative to the data loader file
+- The `load()` function receives absolute paths of matched files
+- File changes trigger hot updates in development
+</Accordion>
+
+<Note>
+Since data loaders run only at build time, you can import Node.js APIs and npm packages without shipping them to the client!
+</Note>
+
+## createContentLoader Helper
+
+For content-focused sites, VitePress provides `createContentLoader` to simplify loading markdown files:
+
+### Basic Usage
+
+```typescript
+// posts.data.ts
+import { createContentLoader } from 'vitepress'
+
+export default createContentLoader('posts/*.md')
+```
+
+<Tabs>
+  <Tab title="Usage in Component">
+    ```vue
+    <script setup>
+    import { data as posts } from './posts.data.js'
+    </script>
+    
+    <template>
+      <article v-for="post of posts" :key="post.url">
+        <h2>
+          <a :href="post.url">{{ post.frontmatter.title }}</a>
+        </h2>
+        <p>{{ post.frontmatter.description }}</p>
+      </article>
+    </template>
+    ```
+  </Tab>
+  
+  <Tab title="Data Structure">
+    ```typescript
+    interface ContentData {
+      url: string                    // /posts/hello.html
+      frontmatter: Record<string, any> // YAML frontmatter
+      src: string | undefined        // raw markdown
+      html: string | undefined       // rendered HTML
+      excerpt: string | undefined    // excerpt HTML
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Content Loader Options
+
+Customize what data is loaded and how it's transformed:
+
+```typescript
+// posts.data.ts
+import { createContentLoader } from 'vitepress'
+
+export default createContentLoader('posts/*.md', {
+  includeSrc: true,   // Include raw markdown source
+  render: true,       // Include full rendered HTML
+  excerpt: true,      // Include excerpt (content before first ---)
+  
+  transform(rawData) {
+    // Sort by date, newest first
+    return rawData
+      .sort((a, b) => {
+        return +new Date(b.frontmatter.date) - +new Date(a.frontmatter.date)
+      })
+      .map((post) => ({
+        title: post.frontmatter.title,
+        url: post.url,
+        excerpt: post.excerpt,
+        date: post.frontmatter.date,
+        author: post.frontmatter.author
+      }))
+  }
+})
+```
+
+<Warning>
+Be cautious about data size. The loaded data is inlined as JSON in the client bundle. Use `transform` to filter and reduce data before serialization.
+</Warning>
+
+### Custom Excerpt Separator
+
+Control how excerpts are extracted:
+
+<CodeGroup>
+```typescript Boolean
+export default createContentLoader('posts/*.md', {
+  excerpt: true  // Uses '---' as separator
+})
+```
+
+```typescript Custom Separator
+export default createContentLoader('posts/*.md', {
+  excerpt: '<!-- more -->'  // Custom separator
+})
+```
+
+```typescript Custom Function
+export default createContentLoader('posts/*.md', {
+  excerpt: (file) => {
+    // Extract first paragraph
+    const match = file.content.match(/^\n(.+?)\n\n/)
+    file.excerpt = match?.[1] || ''
+  }
+})
+```
+</CodeGroup>
+
+## TypeScript Support
+
+Use `defineLoader` for type-safe data loaders:
+
+```typescript
+// posts.data.ts
+import { defineLoader } from 'vitepress'
+
+export interface Post {
+  title: string
+  url: string
+  date: string
+}
+
+export interface Data {
+  posts: Post[]
+}
+
+declare const data: Data
+export { data }
+
+export default defineLoader({
+  watch: ['./posts/*.json'],
+  async load(files): Promise<Data> {
+    const posts = files.map(file => {
+      return JSON.parse(fs.readFileSync(file, 'utf-8'))
+    })
+    
+    return { posts }
+  }
+})
+```
+
+Now imports are fully typed:
+
+```typescript
+import { data } from './posts.data.js'
+// data is typed as { posts: Post[] }
+```
+
+## Accessing Site Config
+
+Access VitePress configuration inside data loaders:
+
+```typescript
+import type { SiteConfig } from 'vitepress'
+
+export default {
+  async load() {
+    const config: SiteConfig = (globalThis as any).VITEPRESS_CONFIG
+    
+    console.log(config.site.title)
+    console.log(config.site.base)
+    
+    return {
+      siteTitle: config.site.title
+    }
+  }
+}
+```
+
+<Note>
+Implementation reference: `src/node/contentLoader.ts:80-84`
+</Note>
+
+## Using in Build Hooks
+
+Data loaders can be used in build hooks to generate additional files:
+
+```typescript
+// .vitepress/config.ts
+import { createContentLoader } from 'vitepress'
+import { writeFileSync } from 'fs'
+import { Feed } from 'feed'
+
+export default {
+  async buildEnd() {
+    const posts = await createContentLoader('posts/*.md', {
+      excerpt: true,
+      render: true
+    }).load()
+    
+    // Generate RSS feed
+    const feed = new Feed({
+      title: 'My Blog',
+      description: 'My awesome blog',
+      link: 'https://example.com'
+    })
+    
+    for (const post of posts) {
+      feed.addItem({
+        title: post.frontmatter.title,
+        link: `https://example.com${post.url}`,
+        description: post.excerpt,
+        date: new Date(post.frontmatter.date)
+      })
+    }
+    
+    writeFileSync('dist/feed.rss', feed.rss2())
+  }
+}
+```
+
+## Real-World Examples
+
+### Blog Post Index
+
+<Accordion title="Complete Example">
+```typescript
+// blog.data.ts
+import { createContentLoader } from 'vitepress'
+
+interface Post {
+  title: string
+  url: string
+  date: string
+  excerpt: string
+  author: string
+  tags: string[]
+}
+
+declare const data: Post[]
+export { data }
+
+export default createContentLoader('blog/*.md', {
+  excerpt: true,
+  transform(raw): Post[] {
+    return raw
+      .map(({ url, frontmatter, excerpt }) => ({
+        title: frontmatter.title,
+        url,
+        excerpt,
+        date: frontmatter.date,
+        author: frontmatter.author,
+        tags: frontmatter.tags || []
+      }))
+      .sort((a, b) => +new Date(b.date) - +new Date(a.date))
+  }
+})
+```
+
+Use in a page:
+
+```vue
+<script setup>
+import { data as posts } from './blog.data.js'
+import { computed } from 'vue'
+
+const latestPosts = computed(() => posts.slice(0, 5))
+</script>
+
+<template>
+  <div class="blog-index">
+    <h1>Latest Posts</h1>
+    <article v-for="post in latestPosts" :key="post.url">
+      <h2><a :href="post.url">{{ post.title }}</a></h2>
+      <div class="meta">
+        <span>{{ post.date }}</span>
+        <span>by {{ post.author }}</span>
+      </div>
+      <div class="excerpt" v-html="post.excerpt"></div>
+      <div class="tags">
+        <span v-for="tag in post.tags" :key="tag">{{ tag }}</span>
+      </div>
+    </article>
+  </div>
+</template>
+```
+</Accordion>
+
+### API Documentation Index
+
+```typescript
+// api-index.data.ts
+import { createContentLoader } from 'vitepress'
+
+interface APIEntry {
+  name: string
+  type: 'function' | 'class' | 'interface'
+  url: string
+  description: string
+}
+
+export default createContentLoader('api/**/*.md', {
+  transform(raw): APIEntry[] {
+    return raw
+      .map(({ url, frontmatter }) => ({
+        name: frontmatter.name,
+        type: frontmatter.type,
+        url,
+        description: frontmatter.description
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }
+})
+```
+
+### Team Members
+
+```typescript
+// team.data.ts
+import { defineLoader } from 'vitepress'
+import fs from 'fs'
+
+interface Member {
+  name: string
+  role: string
+  avatar: string
+  github: string
+}
+
+export default defineLoader({
+  watch: ['team/*.json'],
+  load(files): Member[] {
+    return files
+      .map(file => JSON.parse(fs.readFileSync(file, 'utf-8')))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }
+})
+```
+
+## Performance Considerations
+
+<Steps>
+  <Step title="Minimize Data Size">
+    Only include necessary fields in your transform:
+    
+    ```typescript
+    transform(raw) {
+      return raw.map(({ url, frontmatter }) => ({
+        title: frontmatter.title,  // ✅ Only what's needed
+        url
+      }))
+      // ❌ Don't include: src, html, full frontmatter
+    }
+    ```
+  </Step>
+  
+  <Step title="Use Excerpts Wisely">
+    Full HTML rendering is expensive. Only enable for content that needs it:
+    
+    ```typescript
+    createContentLoader('posts/*.md', {
+      excerpt: true,  // ✅ Lightweight
+      render: false   // ❌ Heavy, use sparingly
+    })
+    ```
+  </Step>
+  
+  <Step title="Cache External Requests">
+    Cache API responses during development:
+    
+    ```typescript
+    const cache = new Map()
+    
+    export default {
+      async load() {
+        if (cache.has('posts')) {
+          return cache.get('posts')
+        }
+        
+        const data = await fetchPosts()
+        cache.set('posts', data)
+        return data
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Paginate Large Datasets">
+    For large collections, implement pagination:
+    
+    ```typescript
+    transform(raw) {
+      const pageSize = 10
+      const pages = []
+      
+      for (let i = 0; i < raw.length; i += pageSize) {
+        pages.push(raw.slice(i, i + pageSize))
+      }
+      
+      return pages
+    }
+    ```
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### Data Not Updating
+
+If changes aren't reflected:
+
+1. Ensure `watch` patterns are correct
+2. Restart the dev server
+3. Check file paths are relative to the data loader
+
+### Large Bundle Size
+
+If your bundle is too large:
+
+1. Use `transform` to reduce data
+2. Disable `render` and `includeSrc` if not needed
+3. Split data into multiple loaders
+4. Consider dynamic imports for large datasets
+
+### Type Errors
+
+For TypeScript issues:
+
+1. Use `defineLoader` for type inference
+2. Declare the `data` export explicitly
+3. Ensure return types match declarations
+
+<Note>
+See the official VitePress test suite for more examples: `__tests__/e2e/data-loading/`
+</Note>

@@ -1,0 +1,673 @@
+---
+title: Extending the Default Theme
+description: Customize VitePress default theme with CSS, components, and layout slots
+---
+
+# Extending the Default Theme
+
+The VitePress default theme is highly customizable through CSS variables, component registration, and layout slots. This allows you to build on top of the default theme without creating a theme from scratch.
+
+<Note>
+  Before proceeding, make sure you understand [how custom themes work](/customization/custom-theme).
+</Note>
+
+## Basic Setup
+
+### Theme Entry File
+
+Create `.vitepress/theme/index.js` or `.vitepress/theme/index.ts`:
+
+<CodeGroup>
+```ts .vitepress/theme/index.ts
+import type { Theme } from 'vitepress'
+import DefaultTheme from 'vitepress/theme'
+import './custom.css'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app, router, siteData }) {
+    // App enhancements
+  }
+} satisfies Theme
+```
+
+```js .vitepress/theme/index.js
+import DefaultTheme from 'vitepress/theme'
+import './custom.css'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app, router, siteData }) {
+    // App enhancements
+  }
+}
+```
+</CodeGroup>
+
+## Customizing CSS
+
+### CSS Variables
+
+The default theme uses CSS custom properties for styling. Override them to customize colors, fonts, spacing, and more.
+
+<Tabs>
+  <Tab title="Colors">
+    ```css .vitepress/theme/custom.css
+    :root {
+      /* Brand colors */
+      --vp-c-brand-1: #646cff;
+      --vp-c-brand-2: #747bff;
+      --vp-c-brand-3: #535bf2;
+      
+      /* Background colors */
+      --vp-c-bg: #ffffff;
+      --vp-c-bg-alt: #f6f6f7;
+      --vp-c-bg-elv: #ffffff;
+      --vp-c-bg-soft: #f6f6f7;
+    }
+    
+    .dark {
+      --vp-c-bg: #1b1b1f;
+      --vp-c-bg-alt: #161618;
+      --vp-c-bg-elv: #202127;
+      --vp-c-bg-soft: #202127;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Typography">
+    ```css .vitepress/theme/custom.css
+    :root {
+      /* Font families */
+      --vp-font-family-base: 'Inter', system-ui, sans-serif;
+      --vp-font-family-mono: 'Monaco', monospace;
+      
+      /* Font sizes */
+      --vp-font-size-base: 16px;
+      --vp-font-size-small: 14px;
+      --vp-font-size-large: 18px;
+      
+      /* Line heights */
+      --vp-line-height-base: 1.7;
+      --vp-line-height-heading: 1.2;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Layout">
+    ```css .vitepress/theme/custom.css
+    :root {
+      /* Layout dimensions */
+      --vp-layout-max-width: 1440px;
+      --vp-sidebar-width-small: 272px;
+      --vp-sidebar-width-mobile: 320px;
+      
+      /* Spacing */
+      --vp-spacing-sm: 8px;
+      --vp-spacing-md: 16px;
+      --vp-spacing-lg: 24px;
+      --vp-spacing-xl: 32px;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Components">
+    ```css .vitepress/theme/custom.css
+    :root {
+      /* Buttons */
+      --vp-button-brand-bg: var(--vp-c-brand-1);
+      --vp-button-brand-hover-bg: var(--vp-c-brand-2);
+      
+      /* Code blocks */
+      --vp-code-font-size: 14px;
+      --vp-code-line-height: 1.5;
+      --vp-code-block-bg: #f6f6f7;
+      
+      /* Links */
+      --vp-c-link: var(--vp-c-brand-1);
+      --vp-c-link-hover: var(--vp-c-brand-2);
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  See the [full list of CSS variables](https://github.com/vuejs/vitepress/blob/main/src/client/theme-default/styles/vars.css) in the VitePress source code.
+</Tip>
+
+### Custom Styles
+
+Add custom CSS rules:
+
+```css .vitepress/theme/custom.css
+/* Custom heading styles */
+.vp-doc h1 {
+  border-bottom: 2px solid var(--vp-c-brand-1);
+  padding-bottom: 0.5rem;
+}
+
+/* Custom link styles */
+.vp-doc a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Custom code block styles */
+.vp-doc div[class*='language-'] {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom sidebar styles */
+.VPSidebar {
+  background: linear-gradient(180deg, 
+    var(--vp-c-bg) 0%, 
+    var(--vp-c-bg-soft) 100%
+  );
+}
+```
+
+## Using Custom Fonts
+
+### Web Fonts
+
+By default, VitePress includes Inter font. To use different fonts:
+
+```js .vitepress/theme/index.js
+import DefaultTheme from 'vitepress/theme-without-fonts'
+import './fonts.css'
+
+export default DefaultTheme
+```
+
+```css .vitepress/theme/fonts.css
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+:root {
+  --vp-font-family-base: 'Roboto', sans-serif;
+}
+```
+
+<Warning>
+  Import from `vitepress/theme-without-fonts` to avoid bundling the default Inter font.
+</Warning>
+
+### Local Fonts
+
+```css .vitepress/theme/fonts.css
+@font-face {
+  font-family: 'CustomFont';
+  src: url('./assets/custom-font.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --vp-font-family-base: 'CustomFont', sans-serif;
+}
+```
+
+Preload the font:
+
+```ts .vitepress/config.ts
+export default defineConfig({
+  transformHead({ assets }) {
+    const fontFile = assets.find(file => /custom-font\.\w+\.woff2/.test(file))
+    if (fontFile) {
+      return [
+        [
+          'link',
+          {
+            rel: 'preload',
+            href: fontFile,
+            as: 'font',
+            type: 'font/woff2',
+            crossorigin: ''
+          }
+        ]
+      ]
+    }
+  }
+})
+```
+
+## Registering Components
+
+### Global Components
+
+<Tabs>
+  <Tab title="Single Component">
+    ```js .vitepress/theme/index.js
+    import DefaultTheme from 'vitepress/theme'
+    import MyComponent from './components/MyComponent.vue'
+    
+    export default {
+      extends: DefaultTheme,
+      enhanceApp({ app }) {
+        app.component('MyComponent', MyComponent)
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Multiple Components">
+    ```js .vitepress/theme/index.js
+    import DefaultTheme from 'vitepress/theme'
+    import Button from './components/Button.vue'
+    import Card from './components/Card.vue'
+    import Badge from './components/Badge.vue'
+    
+    export default {
+      extends: DefaultTheme,
+      enhanceApp({ app }) {
+        app.component('Button', Button)
+        app.component('Card', Card)
+        app.component('Badge', Badge)
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Auto-Register">
+    ```js .vitepress/theme/index.js
+    import DefaultTheme from 'vitepress/theme'
+    
+    export default {
+      extends: DefaultTheme,
+      enhanceApp({ app }) {
+        // Auto-register all components
+        const components = import.meta.glob('./components/**/*.vue', { 
+          eager: true 
+        })
+        
+        for (const path in components) {
+          const component = components[path]
+          const name = path.match(/\/([^\/]+)\.vue$/)?.[1]
+          if (name) {
+            app.component(name, component.default)
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Layout Slots
+
+The default theme provides layout slots to inject custom content at specific locations.
+
+### Available Slots
+
+<Tabs>
+  <Tab title="Doc Layout">
+    When `layout: 'doc'` (default):
+    
+    - `doc-top` - Before doc content
+    - `doc-bottom` - After doc content
+    - `doc-footer-before` - Before doc footer
+    - `doc-before` - Before doc container
+    - `doc-after` - After doc container
+    - `sidebar-nav-before` - Before sidebar nav
+    - `sidebar-nav-after` - After sidebar nav
+    - `aside-top` - Top of aside
+    - `aside-bottom` - Bottom of aside
+    - `aside-outline-before` - Before outline
+    - `aside-outline-after` - After outline
+    - `aside-ads-before` - Before ads
+    - `aside-ads-after` - After ads
+  </Tab>
+  
+  <Tab title="Home Layout">
+    When `layout: 'home'`:
+    
+    - `home-hero-before` - Before hero section
+    - `home-hero-info-before` - Before hero info
+    - `home-hero-info` - Hero info
+    - `home-hero-info-after` - After hero info
+    - `home-hero-actions-after` - After hero actions
+    - `home-hero-image` - Hero image
+    - `home-hero-after` - After hero
+    - `home-features-before` - Before features
+    - `home-features-after` - After features
+  </Tab>
+  
+  <Tab title="Page Layout">
+    When `layout: 'page'`:
+    
+    - `page-top` - Top of page
+    - `page-bottom` - Bottom of page
+  </Tab>
+  
+  <Tab title="Global Slots">
+    Always available:
+    
+    - `layout-top` - Top of layout
+    - `layout-bottom` - Bottom of layout
+    - `nav-bar-title-before` - Before nav title
+    - `nav-bar-title-after` - After nav title
+    - `nav-bar-content-before` - Before nav content
+    - `nav-bar-content-after` - After nav content
+    - `nav-screen-content-before` - Before mobile nav
+    - `nav-screen-content-after` - After mobile nav
+    - `not-found` - 404 page
+  </Tab>
+</Tabs>
+
+### Using Slots with Components
+
+<Tabs>
+  <Tab title="With Layout Wrapper">
+    ```js .vitepress/theme/index.js
+    import DefaultTheme from 'vitepress/theme'
+    import MyLayout from './MyLayout.vue'
+    
+    export default {
+      extends: DefaultTheme,
+      Layout: MyLayout
+    }
+    ```
+    
+    ```vue .vitepress/theme/MyLayout.vue
+    <script setup>
+    import DefaultTheme from 'vitepress/theme'
+    import CustomSidebar from './CustomSidebar.vue'
+    import Banner from './Banner.vue'
+    
+    const { Layout } = DefaultTheme
+    </script>
+    
+    <template>
+      <Layout>
+        <template #doc-top>
+          <Banner />
+        </template>
+        
+        <template #sidebar-nav-before>
+          <CustomSidebar />
+        </template>
+        
+        <template #aside-outline-after>
+          <div class="custom-toc-footer">
+            <a href="#">Back to top</a>
+          </div>
+        </template>
+      </Layout>
+    </template>
+    ```
+  </Tab>
+  
+  <Tab title="With Render Function">
+    ```js .vitepress/theme/index.js
+    import { h } from 'vue'
+    import DefaultTheme from 'vitepress/theme'
+    import Banner from './components/Banner.vue'
+    import TableOfContents from './components/TableOfContents.vue'
+    
+    export default {
+      extends: DefaultTheme,
+      Layout() {
+        return h(DefaultTheme.Layout, null, {
+          'doc-top': () => h(Banner),
+          'aside-outline-before': () => h(TableOfContents)
+        })
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Slot Examples
+
+#### Add Banner to All Docs
+
+```vue .vitepress/theme/MyLayout.vue
+<script setup>
+import DefaultTheme from 'vitepress/theme'
+const { Layout } = DefaultTheme
+</script>
+
+<template>
+  <Layout>
+    <template #doc-top>
+      <div class="banner">
+        <p>📢 This is a beta version. <a href="/feedback">Give feedback</a></p>
+      </div>
+    </template>
+  </Layout>
+</template>
+
+<style scoped>
+.banner {
+  background: var(--vp-c-brand-soft);
+  padding: 12px 24px;
+  text-align: center;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+</style>
+```
+
+#### Add Contributors List
+
+```vue .vitepress/theme/MyLayout.vue
+<script setup>
+import { useData } from 'vitepress'
+import DefaultTheme from 'vitepress/theme'
+import Contributors from './Contributors.vue'
+
+const { Layout } = DefaultTheme
+const { frontmatter } = useData()
+</script>
+
+<template>
+  <Layout>
+    <template #doc-after>
+      <Contributors 
+        v-if="frontmatter.contributors" 
+        :contributors="frontmatter.contributors" 
+      />
+    </template>
+  </Layout>
+</template>
+```
+
+#### Custom Sidebar Footer
+
+```vue .vitepress/theme/MyLayout.vue
+<script setup>
+import DefaultTheme from 'vitepress/theme'
+const { Layout } = DefaultTheme
+</script>
+
+<template>
+  <Layout>
+    <template #sidebar-nav-after>
+      <div class="sidebar-footer">
+        <h3>Need Help?</h3>
+        <ul>
+          <li><a href="/support">Support</a></li>
+          <li><a href="/discord">Discord</a></li>
+          <li><a href="/github">GitHub</a></li>
+        </ul>
+      </div>
+    </template>
+  </Layout>
+</template>
+
+<style scoped>
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--vp-c-divider);
+  margin-top: 16px;
+}
+</style>
+```
+
+## Overriding Components
+
+Replace default theme components using Vite aliases:
+
+```ts .vitepress/config.ts
+import { fileURLToPath, URL } from 'node:url'
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  vite: {
+    resolve: {
+      alias: [
+        {
+          find: /^.*\/VPNavBar\.vue$/,
+          replacement: fileURLToPath(
+            new URL('./theme/components/CustomNavBar.vue', import.meta.url)
+          )
+        },
+        {
+          find: /^.*\/VPFooter\.vue$/,
+          replacement: fileURLToPath(
+            new URL('./theme/components/CustomFooter.vue', import.meta.url)
+          )
+        }
+      ]
+    }
+  }
+})
+```
+
+<Warning>
+  Component names may change between minor releases. Check the [source code](https://github.com/vuejs/vitepress/tree/main/src/client/theme-default/components) for current names.
+</Warning>
+
+## View Transitions
+
+### On Appearance Toggle
+
+Add smooth transitions when toggling dark mode:
+
+```vue .vitepress/theme/Layout.vue
+<script setup lang="ts">
+import { useData } from 'vitepress'
+import DefaultTheme from 'vitepress/theme'
+import { nextTick, provide } from 'vue'
+
+const { isDark } = useData()
+
+const enableTransitions = () =>
+  'startViewTransition' in document &&
+  window.matchMedia('(prefers-reduced-motion: no-preference)').matches
+
+provide('toggle-appearance', async ({ clientX: x, clientY: y }: MouseEvent) => {
+  if (!enableTransitions()) {
+    isDark.value = !isDark.value
+    return
+  }
+
+  const clipPath = [
+    `circle(0px at ${x}px ${y}px)`,
+    `circle(${Math.hypot(
+      Math.max(x, innerWidth - x),
+      Math.max(y, innerHeight - y)
+    )}px at ${x}px ${y}px)`
+  ]
+
+  await document.startViewTransition(async () => {
+    isDark.value = !isDark.value
+    await nextTick()
+  }).ready
+
+  document.documentElement.animate(
+    { clipPath: isDark.value ? clipPath.reverse() : clipPath },
+    {
+      duration: 300,
+      easing: 'ease-in',
+      pseudoElement: `::view-transition-${isDark.value ? 'old' : 'new'}(root)`
+    }
+  )
+})
+</script>
+
+<template>
+  <DefaultTheme.Layout />
+</template>
+
+<style>
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root),
+.dark::view-transition-new(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root),
+.dark::view-transition-old(root) {
+  z-index: 9999;
+}
+</style>
+```
+
+## Complete Example
+
+```js .vitepress/theme/index.js
+import { h } from 'vue'
+import type { Theme } from 'vitepress'
+import DefaultTheme from 'vitepress/theme'
+
+// Custom CSS
+import './custom.css'
+import './fonts.css'
+
+// Custom components
+import Banner from './components/Banner.vue'
+import Contributors from './components/Contributors.vue'
+import CustomButton from './components/CustomButton.vue'
+import Analytics from './components/Analytics.vue'
+
+export default {
+  extends: DefaultTheme,
+  
+  Layout() {
+    return h(DefaultTheme.Layout, null, {
+      'doc-top': () => h(Banner),
+      'doc-after': () => h(Contributors),
+      'layout-bottom': () => h(Analytics)
+    })
+  },
+  
+  enhanceApp({ app, router, siteData }) {
+    // Register global components
+    app.component('CustomButton', CustomButton)
+    
+    // Add router hooks
+    router.onAfterRouteChanged = (to) => {
+      // Track page views
+      if (typeof window !== 'undefined' && window.gtag) {
+        window.gtag('event', 'page_view', {
+          page_path: to
+        })
+      }
+    }
+    
+    // Global error handler
+    app.config.errorHandler = (err, instance, info) => {
+      console.error('App error:', err, info)
+    }
+  }
+} satisfies Theme
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Theme Configuration" icon="palette" href="./theme-config">
+    Configure default theme options
+  </Card>
+  
+  <Card title="Custom Theme" icon="paintbrush" href="./custom-theme">
+    Create a completely custom theme
+  </Card>
+</CardGroup>

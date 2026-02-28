@@ -1,0 +1,744 @@
+---
+title: Frequently Asked Questions
+description: Common questions about VitePress
+---
+
+# Frequently Asked Questions
+
+Answers to common questions about VitePress.
+
+## General Questions
+
+<Accordion title="What is VitePress?">
+VitePress is a Vue-powered static site generator built on top of Vite. It's a spiritual successor to VuePress, designed specifically for creating fast, modern documentation sites.
+
+**Key Features:**
+- Lightning-fast development with Vite
+- Vue 3 components in markdown
+- Optimized static site generation
+- Beautiful default theme
+- Powerful theming capabilities
+</Accordion>
+
+<Accordion title="How is VitePress different from VuePress?">
+**VitePress advantages:**
+- Much faster development and build times (powered by Vite)
+- Simpler, more streamlined architecture
+- Better performance out of the box
+- Modern Vue 3 and Composition API
+- Lighter weight and fewer dependencies
+
+**When to use VuePress:**
+- Need plugin ecosystem from VuePress v1
+- Require backward compatibility
+- Using VuePress-specific plugins
+
+VitePress is recommended for new projects.
+</Accordion>
+
+<Accordion title="Is VitePress production-ready?">
+Yes! VitePress is used in production by many major projects:
+
+- Vue.js official documentation
+- Vite documentation
+- Vitest documentation
+- Rollup documentation
+- Many other open source projects
+
+**Note:** Version 2.0 is currently in alpha. For production use, consider using v1.x (stable) or test v2.x alpha thoroughly.
+</Accordion>
+
+<Accordion title="Can I migrate from VuePress to VitePress?">
+Yes, but it requires some manual work:
+
+1. **Config format changes**: VitePress uses a different config structure
+2. **Markdown plugins**: Some VuePress plugins need replacement
+3. **Theme customization**: Different theming approach
+4. **Components**: May need to update Vue 2 to Vue 3 syntax
+
+Benefits often outweigh migration effort:
+- Significantly faster build times
+- Better developer experience
+- Modern architecture
+- Active development
+</Accordion>
+
+## Installation & Setup
+
+<Accordion title="What are the system requirements?">
+**Minimum Requirements:**
+- Node.js v20 or higher
+- pnpm, npm, or yarn package manager
+
+**Recommended:**
+- Node.js v20+ (latest LTS)
+- pnpm for faster installs
+- 4GB+ RAM for large sites
+- SSD storage for better performance
+</Accordion>
+
+<Accordion title="How do I create a new VitePress site?">
+Use the initialization wizard:
+
+```bash
+npx vitepress init
+```
+
+Or manually:
+
+```bash
+# Create directory
+mkdir my-docs && cd my-docs
+
+# Initialize package.json
+npm init -y
+
+# Install VitePress
+npm install -D vitepress
+
+# Create first page
+mkdir docs && echo '# Hello VitePress' > docs/index.md
+
+# Add scripts to package.json
+npm pkg set scripts.docs:dev="vitepress dev docs"
+npm pkg set scripts.docs:build="vitepress build docs"
+npm pkg set scripts.docs:preview="vitepress preview docs"
+```
+</Accordion>
+
+<Accordion title="Why use pnpm instead of npm or yarn?">
+pnpm is recommended but not required:
+
+**Advantages:**
+- Faster installation (hard links instead of copying)
+- Better disk space efficiency
+- Stricter dependency resolution
+- Used by VitePress development team
+
+**You can still use:**
+- npm (works fine, just slower)
+- yarn (also supported)
+
+Choose based on your project needs.
+</Accordion>
+
+## Configuration
+
+<Accordion title="Where do I put the configuration file?">
+Create `.vitepress/config.ts` (or `.js`, `.mts`, `.mjs`) in your docs directory:
+
+```bash
+docs/
+├── .vitepress/
+│   └── config.ts    # Configuration file
+└── index.md
+```
+
+**TypeScript** (recommended):
+```typescript
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  title: 'My Docs',
+  description: 'My documentation site'
+})
+```
+
+**JavaScript**:
+```javascript
+export default {
+  title: 'My Docs',
+  description: 'My documentation site'
+}
+```
+</Accordion>
+
+<Accordion title="How do I configure the navigation and sidebar?">
+Add to your config file:
+
+```typescript
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  themeConfig: {
+    // Top navigation
+    nav: [
+      { text: 'Home', link: '/' },
+      { text: 'Guide', link: '/guide/' },
+      {
+        text: 'Dropdown',
+        items: [
+          { text: 'Item A', link: '/item-a' },
+          { text: 'Item B', link: '/item-b' }
+        ]
+      }
+    ],
+    
+    // Sidebar
+    sidebar: [
+      {
+        text: 'Guide',
+        items: [
+          { text: 'Introduction', link: '/guide/' },
+          { text: 'Getting Started', link: '/quickstart' }
+        ]
+      }
+    ]
+  }
+})
+```
+</Accordion>
+
+<Accordion title="Can I use environment variables in config?">
+Yes! VitePress supports environment variables:
+
+```typescript
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  base: process.env.BASE_URL || '/',
+  
+  head: [
+    ['script', { 
+      src: `https://analytics.example.com?id=${process.env.ANALYTICS_ID}` 
+    }]
+  ]
+})
+```
+
+**.env file**:
+```bash
+BASE_URL=/docs/
+ANALYTICS_ID=UA-123456-1
+```
+
+Load with dotenv:
+```bash
+npm install -D dotenv
+```
+
+```typescript
+import { defineConfig, loadEnv } from 'vitepress'
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd())
+  
+  return {
+    // use env.VITE_* variables
+  }
+})
+```
+</Accordion>
+
+## Customization
+
+<Accordion title="How do I customize the theme?">
+**Option 1: Extend default theme**
+
+Create `.vitepress/theme/index.ts`:
+
+```typescript
+import DefaultTheme from 'vitepress/theme'
+import './custom.css'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app }) {
+    // Register custom components
+  }
+}
+```
+
+**Option 2: CSS variables**
+
+Create `.vitepress/theme/custom.css`:
+
+```css
+:root {
+  --vp-c-brand-1: #646cff;
+  --vp-c-brand-2: #747bff;
+  --vp-c-brand-3: #535bf2;
+}
+```
+
+**Option 3: Complete custom theme**
+
+Create your own theme from scratch (advanced).
+</Accordion>
+
+<Accordion title="Can I use Vue components in markdown?">
+Yes! VitePress supports Vue components directly in markdown:
+
+**1. Create component** `.vitepress/theme/components/MyComponent.vue`:
+
+```vue
+<script setup>
+import { ref } from 'vue'
+const count = ref(0)
+</script>
+
+<template>
+  <button @click="count++">{{ count }}</button>
+</template>
+```
+
+**2. Register globally** `.vitepress/theme/index.ts`:
+
+```typescript
+import DefaultTheme from 'vitepress/theme'
+import MyComponent from './components/MyComponent.vue'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app }) {
+    app.component('MyComponent', MyComponent)
+  }
+}
+```
+
+**3. Use in markdown**:
+
+```markdown
+# My Page
+
+<MyComponent />
+```
+</Accordion>
+
+<Accordion title="How do I add custom CSS or scripts?">
+**Add to all pages** via config:
+
+```typescript
+export default defineConfig({
+  head: [
+    // CSS
+    ['link', { rel: 'stylesheet', href: '/custom.css' }],
+    
+    // JavaScript
+    ['script', { src: '/custom.js' }],
+    
+    // Inline script
+    ['script', {}, `console.log('Hello')`]
+  ]
+})
+```
+
+**Theme-level CSS**:
+
+Create `.vitepress/theme/custom.css` and import in `.vitepress/theme/index.ts`.
+
+**Per-page** via frontmatter:
+
+```yaml
+---
+head:
+  - [link, { rel: stylesheet, href: /page-specific.css }]
+---
+```
+</Accordion>
+
+## Content & Markdown
+
+<Accordion title="What markdown features are supported?">
+VitePress supports:
+
+**Standard Markdown:**
+- Headers, lists, links, images
+- Code blocks with syntax highlighting
+- Tables, blockquotes
+- Emphasis (bold, italic)
+
+**Extended Features:**
+- GitHub-flavored alerts (Note, Warning, etc.)
+- Code groups and line highlighting
+- File imports and snippets
+- Custom containers
+- Emoji :tada:
+- Table of contents
+- Math equations (with plugin)
+
+**Vue Integration:**
+- Vue components in markdown
+- Template syntax
+- Script and style blocks
+</Accordion>
+
+<Accordion title="How do I highlight specific lines in code blocks?">
+Use curly braces with line numbers:
+
+```markdown
+```js{1,3-5}
+function hello() {          // highlighted
+  const x = 1
+  const y = 2               // highlighted
+  const z = 3               // highlighted  
+  return x + y + z          // highlighted
+}
+```
+```
+
+**Highlight with comments:**
+
+```markdown
+```js
+function hello() {
+  console.log('normal')
+  console.log('highlighted') // [!code highlight]
+  console.log('normal')
+}
+```
+```
+</Accordion>
+
+<Accordion title="Can I import code from external files?">
+Yes, using the `@` symbol:
+
+```markdown
+# Import entire file
+<<< @/code/example.js
+
+# Import with highlighting
+<<< @/code/example.js{2,4-6}
+
+# Import specific lines
+<<< @/code/example.js#L10-L20
+
+# Import region
+<<< @/code/example.js#region-name
+```
+
+**Region in source file:**
+
+```js
+// #region region-name
+function example() {
+  return 'This will be imported'
+}
+// #endregion region-name
+```
+</Accordion>
+
+<Accordion title="How do I create a custom home page?">
+Use the `home` layout in frontmatter:
+
+```yaml
+---
+layout: home
+
+hero:
+  name: VitePress
+  text: Vite & Vue Powered Static Site Generator
+  tagline: Simple, powerful, and fast
+  image:
+    src: /logo.png
+    alt: VitePress logo
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /quickstart
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/vuejs/vitepress
+
+features:
+  - icon: ⚡️
+    title: Vite-Powered
+    details: Instant server start and lightning-fast HMR
+  - icon: 🖖
+    title: Vue-Powered
+    details: Use Vue components directly in markdown
+  - icon: 📝
+    title: Markdown-Centered
+    details: Focus on your content with markdown
+---
+```
+</Accordion>
+
+## Search
+
+<Accordion title="How do I add search to my site?">
+**Option 1: Local Search** (built-in, no setup):
+
+```typescript
+export default defineConfig({
+  themeConfig: {
+    search: {
+      provider: 'local'
+    }
+  }
+})
+```
+
+**Option 2: Algolia DocSearch** (better for large sites):
+
+```typescript
+export default defineConfig({
+  themeConfig: {
+    search: {
+      provider: 'algolia',
+      options: {
+        appId: 'YOUR_APP_ID',
+        apiKey: 'YOUR_API_KEY',
+        indexName: 'YOUR_INDEX_NAME'
+      }
+    }
+  }
+})
+```
+
+Apply for Algolia DocSearch: [docsearch.algolia.com](https://docsearch.algolia.com)
+</Accordion>
+
+<Accordion title="How do I customize local search?">
+Customize translations and behavior:
+
+```typescript
+export default defineConfig({
+  themeConfig: {
+    search: {
+      provider: 'local',
+      options: {
+        locales: {
+          root: {
+            translations: {
+              button: {
+                buttonText: 'Search',
+                buttonAriaLabel: 'Search docs'
+              },
+              modal: {
+                displayDetails: 'Display list',
+                resetButtonTitle: 'Reset',
+                backButtonTitle: 'Close',
+                noResultsText: 'No results for',
+                footer: {
+                  selectText: 'to select',
+                  selectKeyAriaLabel: 'enter',
+                  navigateText: 'to navigate',
+                  navigateUpKeyAriaLabel: 'up arrow',
+                  navigateDownKeyAriaLabel: 'down arrow',
+                  closeText: 'to close',
+                  closeKeyAriaLabel: 'escape'
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+})
+```
+</Accordion>
+
+## Deployment
+
+<Accordion title="How do I deploy to GitHub Pages?">
+**1. Configure base path** in config:
+
+```typescript
+export default defineConfig({
+  base: '/my-repo/' // Your repository name
+})
+```
+
+**2. Create deploy workflow** `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy VitePress
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run docs:build
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/.vitepress/dist
+```
+
+**3. Enable GitHub Pages** in repository settings to use `gh-pages` branch.
+</Accordion>
+
+<Accordion title="What are the recommended hosting options?">
+**Static Hosting** (recommended):
+- Netlify (automatic builds from Git)
+- Vercel (zero configuration)
+- Cloudflare Pages (fast global CDN)
+- GitHub Pages (free for public repos)
+- GitLab Pages (free for all repos)
+
+**Other Options:**
+- AWS S3 + CloudFront
+- Azure Static Web Apps
+- Firebase Hosting
+- Render
+
+All work great with VitePress static builds.
+</Accordion>
+
+<Accordion title="How do I handle base paths for deployment?">
+If deploying to a subdirectory:
+
+```typescript
+export default defineConfig({
+  base: '/subdirectory/'
+})
+```
+
+**Examples:**
+- GitHub Pages repo: `base: '/repo-name/'`
+- Root domain: `base: '/'` (default)
+- Subdirectory: `base: '/docs/'`
+
+All internal links will automatically include the base path.
+</Accordion>
+
+## Performance & Optimization
+
+<Accordion title="How can I improve build performance?">
+**For large sites:**
+
+```typescript
+export default defineConfig({
+  // Enable markdown caching
+  markdown: {
+    cache: true
+  },
+  
+  // Optimize chunk size
+  vite: {
+    build: {
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              return 'vendor'
+            }
+          }
+        }
+      }
+    }
+  }
+})
+```
+
+**Other tips:**
+- Use lazy-loaded languages for Shiki
+- Optimize images before adding to docs
+- Split large pages into smaller ones
+- Use dynamic imports for heavy components
+</Accordion>
+
+<Accordion title="Should I commit the dist folder?">
+**No**, generally don't commit `docs/.vitepress/dist/`.
+
+**Add to .gitignore:**
+```gitignore
+node_modules
+docs/.vitepress/dist
+docs/.vitepress/cache
+```
+
+**Exception:** If deploying manually without CI/CD, you might commit the dist folder to a deployment branch (like `gh-pages`).
+</Accordion>
+
+## Troubleshooting
+
+<Accordion title="Build is failing with TypeScript errors">
+**Common causes:**
+
+1. **Vite 7 plugin compatibility**: Use `@ts-expect-error` for incompatible plugins
+2. **Missing types**: Install `@types/node`
+3. **Config errors**: Check your `.vitepress/config.ts` syntax
+
+**Solutions:**
+```bash
+# Install missing types
+npm install -D @types/node
+
+# Clear cache and rebuild
+rm -rf node_modules/.vite
+rm -rf docs/.vitepress/cache
+npm run docs:build
+```
+</Accordion>
+
+<Accordion title="Styles are not applying correctly">
+**Check:**
+
+1. CSS import order in theme
+2. Specificity issues with custom CSS
+3. CSS variables properly defined for dark mode
+4. Scoped vs global styles
+
+**Debug:**
+```typescript
+// .vitepress/theme/index.ts
+import DefaultTheme from 'vitepress/theme'
+import './custom.css' // Make sure this is imported
+
+export default {
+  extends: DefaultTheme
+}
+```
+</Accordion>
+
+<Accordion title="404 errors on deployed site">
+**Common causes:**
+
+1. **Wrong base path**: Set correct `base` in config
+2. **Case sensitivity**: URLs are case-sensitive on most servers
+3. **Missing trailing slashes**: Some servers require `/path/` instead of `/path`
+4. **SPA fallback**: Configure server to serve `index.html` for unknown routes
+
+**Solutions:**
+- Verify `base` matches deployment path
+- Use lowercase file names
+- Configure server redirects/rewrites
+</Accordion>
+
+## Getting Help
+
+<Accordion title="Where can I get help?">
+**Official Resources:**
+- Documentation: [vitepress.dev](https://vitepress.dev)
+- GitHub Issues: [vuejs/vitepress/issues](https://github.com/vuejs/vitepress/issues)
+- Discussions: [vuejs/vitepress/discussions](https://github.com/vuejs/vitepress/discussions)
+- Discord: [chat.vuejs.org](https://chat.vuejs.org)
+
+**Before asking:**
+1. Search existing issues and discussions
+2. Check the documentation
+3. Read this FAQ
+4. Prepare a minimal reproduction
+</Accordion>
+
+<Accordion title="How do I report a bug?">
+**Create a GitHub issue with:**
+
+1. **Clear title**: Describe the issue concisely
+2. **VitePress version**: Run `npm list vitepress`
+3. **Node.js version**: Run `node -v`
+4. **Reproduction**: Minimal example or repository
+5. **Expected behavior**: What should happen
+6. **Actual behavior**: What actually happens
+7. **Steps to reproduce**: Detailed steps
+8. **Screenshots**: If applicable
+
+**Tip:** Use [StackBlitz](https://stackblitz.com) to create a live reproduction.
+</Accordion>
+
+<Note>
+Can't find your question? Check the [official documentation](https://vitepress.dev) or ask in [GitHub Discussions](https://github.com/vuejs/vitepress/discussions).
+</Note>

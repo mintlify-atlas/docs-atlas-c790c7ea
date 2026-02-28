@@ -1,0 +1,769 @@
+---
+title: Creating a Custom Theme
+description: Build a completely custom VitePress theme from scratch
+---
+
+# Creating a Custom Theme
+
+VitePress allows you to create completely custom themes to match your specific design requirements. A custom theme gives you full control over the layout, styling, and functionality of your documentation site.
+
+## Theme Structure
+
+### Theme Entry File
+
+Create a theme entry file at `.vitepress/theme/index.js` or `.vitepress/theme/index.ts`:
+
+```
+.
+├─ docs
+│  ├─ .vitepress
+│  │  ├─ theme
+│  │  │  └─ index.js   # Theme entry
+│  │  └─ config.js
+│  └─ index.md
+└─ package.json
+```
+
+<Note>
+  When VitePress detects a theme entry file, it will use your custom theme instead of the default theme.
+</Note>
+
+### Theme Interface
+
+A VitePress theme must implement this interface:
+
+```ts
+interface Theme {
+  /**
+   * Root layout component for every page
+   * @required
+   */
+  Layout: Component
+  
+  /**
+   * Enhance Vue app instance
+   * @optional
+   */
+  enhanceApp?: (ctx: EnhanceAppContext) => Awaitable<void>
+  
+  /**
+   * Extend another theme, calling its `enhanceApp` before ours
+   * @optional
+   */
+  extends?: Theme
+}
+
+interface EnhanceAppContext {
+  app: App // Vue app instance
+  router: Router // VitePress router instance
+  siteData: Ref<SiteData> // Site-level metadata
+}
+```
+
+## Basic Custom Theme
+
+### Minimal Setup
+
+The simplest possible theme:
+
+<CodeGroup>
+```js .vitepress/theme/index.js
+import Layout from './Layout.vue'
+
+export default {
+  Layout
+}
+```
+
+```vue .vitepress/theme/Layout.vue
+<template>
+  <h1>Custom Theme</h1>
+  <Content />
+</template>
+```
+</CodeGroup>
+
+<Tip>
+  The `<Content />` component renders the compiled Markdown content.
+</Tip>
+
+### With Type Safety
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts .vitepress/theme/index.ts
+    import type { Theme } from 'vitepress'
+    import Layout from './Layout.vue'
+    
+    export default {
+      Layout,
+      enhanceApp({ app, router, siteData }) {
+        // App enhancements
+      }
+    } satisfies Theme
+    ```
+  </Tab>
+  
+  <Tab title="JSDoc">
+    ```js .vitepress/theme/index.js
+    import Layout from './Layout.vue'
+    
+    /** @type {import('vitepress').Theme} */
+    export default {
+      Layout,
+      enhanceApp({ app, router, siteData }) {
+        // App enhancements
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Building a Layout Component
+
+### Basic Layout
+
+A layout needs at minimum the `<Content />` component:
+
+```vue .vitepress/theme/Layout.vue
+<script setup>
+import { Content } from 'vitepress'
+</script>
+
+<template>
+  <div class="layout">
+    <header>
+      <h1>My Site</h1>
+    </header>
+    
+    <main>
+      <Content />
+    </main>
+    
+    <footer>
+      <p>© 2024 My Company</p>
+    </footer>
+  </div>
+</template>
+
+<style scoped>
+.layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+</style>
+```
+
+### Handling 404 Pages
+
+Use the `useData()` composable to detect 404 pages:
+
+```vue
+<script setup>
+import { useData, Content } from 'vitepress'
+
+const { page } = useData()
+</script>
+
+<template>
+  <div class="layout">
+    <div v-if="page.isNotFound" class="not-found">
+      <h1>404</h1>
+      <p>Page not found</p>
+      <a href="/">Go home</a>
+    </div>
+    
+    <Content v-else />
+  </div>
+</template>
+```
+
+### Multiple Layout Types
+
+Support different layouts via frontmatter:
+
+```vue
+<script setup>
+import { useData, Content } from 'vitepress'
+import HomePage from './HomePage.vue'
+import DocPage from './DocPage.vue'
+import NotFound from './NotFound.vue'
+
+const { page, frontmatter } = useData()
+</script>
+
+<template>
+  <NotFound v-if="page.isNotFound" />
+  <HomePage v-else-if="frontmatter.layout === 'home'" />
+  <DocPage v-else />
+</template>
+```
+
+Then in your Markdown:
+
+```md
+---
+layout: home
+---
+
+# Home Page Content
+```
+
+## Using Runtime Data
+
+### Available Composables
+
+VitePress provides several composables for accessing runtime data:
+
+<Tabs>
+  <Tab title="useData">
+    ```vue
+    <script setup>
+    import { useData } from 'vitepress'
+    
+    const { 
+      site,        // Site-level data
+      page,        // Current page data
+      frontmatter, // Current page frontmatter
+      params,      // Dynamic route params
+      theme,       // Theme config
+      isDark,      // Dark mode state
+      lang,        // Current language
+      localeIndex, // Current locale index
+      title,       // Page title
+      description  // Page description
+    } = useData()
+    </script>
+    
+    <template>
+      <div>
+        <h1>{{ title }}</h1>
+        <p>{{ description }}</p>
+        <p>Theme: {{ isDark ? 'Dark' : 'Light' }}</p>
+      </div>
+    </template>
+    ```
+  </Tab>
+  
+  <Tab title="useRoute">
+    ```vue
+    <script setup>
+    import { useRoute } from 'vitepress'
+    
+    const route = useRoute()
+    </script>
+    
+    <template>
+      <div>
+        <p>Current path: {{ route.path }}</p>
+        <p>Component: {{ route.component }}</p>
+      </div>
+    </template>
+    ```
+  </Tab>
+  
+  <Tab title="useRouter">
+    ```vue
+    <script setup>
+    import { useRouter } from 'vitepress'
+    
+    const router = useRouter()
+    
+    function goToPage() {
+      router.go('/guide/')
+    }
+    </script>
+    
+    <template>
+      <button @click="goToPage">Go to Guide</button>
+    </template>
+    ```
+  </Tab>
+</Tabs>
+
+### Accessing Page Data
+
+```vue
+<script setup>
+import { useData } from 'vitepress'
+
+const { page, frontmatter } = useData()
+</script>
+
+<template>
+  <article>
+    <h1>{{ page.title }}</h1>
+    
+    <div class="meta">
+      <span v-if="frontmatter.author">By {{ frontmatter.author }}</span>
+      <span v-if="frontmatter.date">{{ frontmatter.date }}</span>
+      <span v-if="page.lastUpdated">
+        Updated: {{ new Date(page.lastUpdated).toLocaleDateString() }}
+      </span>
+    </div>
+    
+    <Content />
+  </article>
+</template>
+```
+
+## Enhancing the App
+
+### Registering Global Components
+
+```js .vitepress/theme/index.js
+import DefaultTheme from 'vitepress/theme'
+import MyButton from './components/MyButton.vue'
+import MyCard from './components/MyCard.vue'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app }) {
+    app.component('MyButton', MyButton)
+    app.component('MyCard', MyCard)
+  }
+}
+```
+
+Now use them in Markdown:
+
+```md
+# My Page
+
+<MyButton>Click me</MyButton>
+
+<MyCard title="Card Title">
+  Card content
+</MyCard>
+```
+
+### Auto-Registering Components
+
+Use Vite's glob import:
+
+```js .vitepress/theme/index.js
+import DefaultTheme from 'vitepress/theme'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app }) {
+    // Auto-register all components from ./components
+    const components = import.meta.glob('./components/**/*.vue', { eager: true })
+    
+    for (const path in components) {
+      const component = components[path]
+      const name = path.match(/\/([^\/]+)\.vue$/)?.[1]
+      if (name) {
+        app.component(name, component.default)
+      }
+    }
+  }
+}
+```
+
+### Installing Vue Plugins
+
+```js .vitepress/theme/index.js
+import DefaultTheme from 'vitepress/theme'
+import VueGtag from 'vue-gtag'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app, router }) {
+    app.use(VueGtag, {
+      config: { id: 'GA_MEASUREMENT_ID' }
+    }, router)
+  }
+}
+```
+
+### Adding Global State
+
+```js .vitepress/theme/index.js
+import { createPinia } from 'pinia'
+import DefaultTheme from 'vitepress/theme'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app }) {
+    const pinia = createPinia()
+    app.use(pinia)
+  }
+}
+```
+
+## SSR Compatibility
+
+<Warning>
+  Your theme must be SSR-compatible. Avoid accessing browser-only APIs during SSR.
+</Warning>
+
+### Conditional Browser Code
+
+<Tabs>
+  <Tab title="onMounted">
+    ```vue
+    <script setup>
+    import { onMounted } from 'vue'
+    
+    onMounted(() => {
+      // Safe to use browser APIs here
+      console.log(window.location.href)
+      document.title = 'My Page'
+    })
+    </script>
+    ```
+  </Tab>
+  
+  <Tab title="ClientOnly Component">
+    ```vue
+    <template>
+      <ClientOnly>
+        <BrowserOnlyComponent />
+      </ClientOnly>
+    </template>
+    ```
+  </Tab>
+  
+  <Tab title="Dynamic Import">
+    ```vue
+    <script setup>
+    import { defineAsyncComponent } from 'vue'
+    
+    const BrowserComponent = defineAsyncComponent(() =>
+      import('./BrowserComponent.vue')
+    )
+    </script>
+    
+    <template>
+      <ClientOnly>
+        <BrowserComponent />
+      </ClientOnly>
+    </template>
+    ```
+  </Tab>
+</Tabs>
+
+### Import Guards
+
+```js
+if (typeof window !== 'undefined') {
+  // Browser-only imports
+  const analytics = await import('./analytics')
+  analytics.init()
+}
+```
+
+## Theme Styling
+
+### Scoped Styles
+
+```vue
+<template>
+  <div class="custom-layout">
+    <Content />
+  </div>
+</template>
+
+<style scoped>
+.custom-layout {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+}
+</style>
+```
+
+### Global Styles
+
+```js .vitepress/theme/index.js
+import Layout from './Layout.vue'
+import './styles/global.css'
+import './styles/variables.css'
+
+export default {
+  Layout
+}
+```
+
+```css /* styles/global.css */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+code {
+  font-family: 'Monaco', monospace;
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+```
+
+### CSS Variables
+
+```css /* styles/variables.css */
+:root {
+  --color-primary: #3b82f6;
+  --color-text: #1f2937;
+  --color-background: #ffffff;
+  --spacing-unit: 8px;
+}
+
+.dark {
+  --color-text: #f9fafb;
+  --color-background: #111827;
+}
+```
+
+## Distributing Your Theme
+
+### As npm Package
+
+1. **Structure your package:**
+
+```
+my-vitepress-theme/
+├─ src/
+│  ├─ Layout.vue
+│  ├─ index.ts
+│  └─ components/
+├─ package.json
+└─ README.md
+```
+
+2. **Export the theme:**
+
+```ts src/index.ts
+import type { Theme } from 'vitepress'
+import Layout from './Layout.vue'
+
+export type { ThemeConfig } from './config'
+
+const theme: Theme = {
+  Layout,
+  enhanceApp({ app }) {
+    // Theme enhancements
+  }
+}
+
+export default theme
+```
+
+3. **Package.json:**
+
+```json
+{
+  "name": "my-vitepress-theme",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./config": "./config.ts"
+  },
+  "files": ["src", "config.ts"],
+  "peerDependencies": {
+    "vitepress": "^1.0.0",
+    "vue": "^3.0.0"
+  }
+}
+```
+
+4. **Document usage:**
+
+```md README.md
+# My VitePress Theme
+
+## Installation
+
+\`\`\`bash
+npm install my-vitepress-theme
+\`\`\`
+
+## Usage
+
+\`\`\`ts .vitepress/theme/index.ts
+import Theme from 'my-vitepress-theme'
+
+export default Theme
+\`\`\`
+
+## Configuration
+
+\`\`\`ts .vitepress/config.ts
+import { defineConfig } from 'vitepress'
+import type { ThemeConfig } from 'my-vitepress-theme'
+
+export default defineConfig<ThemeConfig>({
+  themeConfig: {
+    // Theme-specific options
+  }
+})
+\`\`\`
+```
+
+### As GitHub Template
+
+Create a [template repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository) with:
+
+```
+vitepress-theme-template/
+├─ docs/
+│  ├─ .vitepress/
+│  │  ├─ theme/
+│  │  │  ├─ Layout.vue
+│  │  │  ├─ index.ts
+│  │  │  └─ components/
+│  │  └─ config.ts
+│  └─ index.md
+├─ package.json
+└─ README.md
+```
+
+Users can then use "Use this template" to create their own repository.
+
+## Advanced Examples
+
+### Blog Theme
+
+```vue .vitepress/theme/Layout.vue
+<script setup>
+import { useData, useRoute } from 'vitepress'
+import { data as posts } from './posts.data'
+
+const { frontmatter, page } = useData()
+const route = useRoute()
+
+const isBlogPost = route.path.startsWith('/blog/')
+</script>
+
+<template>
+  <div class="blog-layout">
+    <header>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/blog/">Blog</a>
+        <a href="/about/">About</a>
+      </nav>
+    </header>
+    
+    <main>
+      <article v-if="isBlogPost" class="post">
+        <h1>{{ page.title }}</h1>
+        <div class="meta">
+          <span>{{ frontmatter.author }}</span>
+          <time>{{ frontmatter.date }}</time>
+        </div>
+        <Content />
+      </article>
+      
+      <Content v-else />
+    </main>
+  </div>
+</template>
+```
+
+### Documentation Theme with Sidebar
+
+```vue .vitepress/theme/Layout.vue
+<script setup>
+import { useData } from 'vitepress'
+import Sidebar from './Sidebar.vue'
+import Navbar from './Navbar.vue'
+
+const { theme, page } = useData()
+</script>
+
+<template>
+  <div class="doc-layout">
+    <Navbar />
+    
+    <div class="container">
+      <Sidebar v-if="theme.sidebar" :items="theme.sidebar" />
+      
+      <main class="content">
+        <article>
+          <h1>{{ page.title }}</h1>
+          <Content />
+        </article>
+      </main>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.container {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 800px;
+}
+</style>
+```
+
+## Complete Theme Example
+
+```ts .vitepress/theme/index.ts
+import type { Theme } from 'vitepress'
+import Layout from './Layout.vue'
+import './styles/vars.css'
+import './styles/base.css'
+
+// Components
+import Button from './components/Button.vue'
+import Card from './components/Card.vue'
+import Badge from './components/Badge.vue'
+
+export interface ThemeConfig {
+  navbar: {
+    logo?: string
+    items: NavItem[]
+  }
+  sidebar: SidebarConfig
+  footer?: {
+    message?: string
+    copyright?: string
+  }
+}
+
+const theme: Theme = {
+  Layout,
+  enhanceApp({ app, router, siteData }) {
+    // Register global components
+    app.component('Button', Button)
+    app.component('Card', Card)
+    app.component('Badge', Badge)
+    
+    // Add router hooks
+    router.onBeforeRouteChange = (to) => {
+      console.log('Navigating to', to)
+    }
+    
+    // Global properties
+    app.config.globalProperties.$myThemeVersion = '1.0.0'
+  }
+}
+
+export default theme
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Extending Default Theme" icon="puzzle-piece" href="./extending-default-theme">
+    Build on top of the default theme instead
+  </Card>
+  
+  <Card title="Runtime API" icon="code" href="/api/runtime-api">
+    Explore available composables and utilities
+  </Card>
+</CardGroup>

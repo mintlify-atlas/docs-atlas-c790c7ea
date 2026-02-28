@@ -1,0 +1,617 @@
+---
+title: Frontmatter Config Reference
+description: Complete reference for VitePress page-level frontmatter configuration
+---
+
+# Frontmatter Config Reference
+
+Frontmatter enables page-based configuration. Use YAML frontmatter at the top of any markdown file to override site-level or theme-level options.
+
+```md
+---
+title: My Page Title
+description: My page description
+layout: doc
+---
+
+# Content starts here
+```
+
+<Note>Access frontmatter data via the `$frontmatter` global in Vue expressions: `{{ $frontmatter.title }}`</Note>
+
+## Site Metadata
+
+These options override site-level configuration for individual pages.
+
+### title
+
+<ParamField path="title" type="string">
+  Title for the page. Overrides [site-level `title`](/api/site-config#title).
+  
+  This becomes the page's `<title>` tag and is combined with `titleTemplate` if configured.
+</ParamField>
+
+```yaml
+---
+title: Getting Started
+---
+```
+
+### titleTemplate
+
+<ParamField path="titleTemplate" type="string | boolean">
+  The suffix for the title. Overrides [site-level `titleTemplate`](/api/site-config#titletemplate).
+  
+  Use `:title` as a placeholder for the page's main title. Set to `false` to disable the suffix.
+</ParamField>
+
+```yaml
+---
+title: API Reference
+titleTemplate: Developer Docs
+---
+```
+
+### description
+
+<ParamField path="description" type="string">
+  Description for the page. Overrides [site-level `description`](/api/site-config#description).
+  
+  Renders as a `<meta name="description">` tag.
+</ParamField>
+
+```yaml
+---
+description: Learn how to get started with VitePress
+---
+```
+
+### head
+
+<ParamField path="head" type="HeadConfig[]">
+  Additional head tags to inject for the current page. Appended after site-level head tags.
+</ParamField>
+
+<Expandable title="Type Definition">
+```ts
+type HeadConfig =
+  | [string, Record<string, string>]
+  | [string, Record<string, string>, string]
+```
+</Expandable>
+
+```yaml
+---
+head:
+  - - meta
+    - name: og:title
+      content: My Page Title
+  - - meta
+    - name: og:description
+      content: My page description
+---
+```
+
+## Layout
+
+Control the page layout and structure.
+
+### layout
+
+<ParamField path="layout" type="'doc' | 'home' | 'page'" default="doc">
+  Determines the layout of the page.
+  
+  - `doc`: Default documentation styles applied to markdown content
+  - `home`: Special layout for home/landing pages with hero and features sections
+  - `page`: Similar to `doc` but no styles applied - fully custom page
+</ParamField>
+
+<Tabs>
+  <Tab title="doc">
+    ```yaml
+    ---
+    layout: doc
+    ---
+    
+    # Regular Documentation Page
+    
+    This page uses the default doc layout with sidebar and outline.
+    ```
+  </Tab>
+  <Tab title="home">
+    ```yaml
+    ---
+    layout: home
+    
+    hero:
+      name: VitePress
+      text: Vite & Vue powered static site generator
+      tagline: Simple, powerful, and fast
+      actions:
+        - theme: brand
+          text: Get Started
+          link: /quickstart
+        - theme: alt
+          text: View on GitHub
+          link: https://github.com/vuejs/vitepress
+    
+    features:
+      - icon: ⚡️
+        title: Vite-Powered
+        details: Lightning fast hot module replacement
+      - icon: 🎨
+        title: Customizable
+        details: Theming support with custom components
+    ---
+    ```
+  </Tab>
+  <Tab title="page">
+    ```yaml
+    ---
+    layout: page
+    ---
+    
+    <div class="custom-page">
+      <h1>Fully Custom Page</h1>
+      <p>No default styles applied.</p>
+    </div>
+    ```
+  </Tab>
+</Tabs>
+
+### hero
+
+<ParamField path="hero" type="Hero">
+  <span className="badge badge-info">home layout only</span>
+  
+  Defines the hero section content when `layout` is set to `home`.
+</ParamField>
+
+<Expandable title="Hero Configuration">
+```yaml
+---
+layout: home
+
+hero:
+  name: VitePress
+  text: Vite & Vue powered static site generator
+  tagline: Simple, powerful, and fast
+  image:
+    src: /logo.svg
+    alt: VitePress Logo
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /quickstart
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/vuejs/vitepress
+---
+```
+
+**Hero Options:**
+- `name`: Main heading (large text)
+- `text`: Secondary heading
+- `tagline`: Subheading/tagline
+- `image`: Hero image (string or `{ src, alt }` object)
+- `actions`: Array of action buttons
+  - `theme`: `'brand'` | `'alt'` | `'sponsor'`
+  - `text`: Button text
+  - `link`: Button link
+</Expandable>
+
+### features
+
+<ParamField path="features" type="Feature[]">
+  <span className="badge badge-info">home layout only</span>
+  
+  Defines feature items to display when `layout` is set to `home`.
+</ParamField>
+
+<Expandable title="Features Configuration">
+```yaml
+---
+layout: home
+
+features:
+  - icon: ⚡️
+    title: Vite-Powered
+    details: Lightning fast hot module replacement and build times
+    link: /guide/why-vitepress
+  
+  - icon: 📝
+    title: Markdown-Powered
+    details: Focus on your content with minimal configuration
+    link: /concepts/markdown
+  
+  - icon:
+      src: /custom-icon.svg
+      alt: Custom Icon
+    title: Customizable
+    details: Full theming support with Vue components
+    link: /guide/customization
+---
+```
+
+**Feature Options:**
+- `icon`: Emoji string or `{ src, alt }` object for image
+- `title`: Feature title
+- `details`: Feature description
+- `link`: Optional link URL
+- `linkText`: Optional custom link text
+- `rel`: Optional rel attribute for link
+- `target`: Optional target attribute for link
+</Expandable>
+
+## Navigation & Sidebar
+
+### navbar
+
+<ParamField path="navbar" type="boolean" default="true">
+  Whether to display the navbar on this page.
+</ParamField>
+
+```yaml
+---
+navbar: false
+---
+```
+
+### sidebar
+
+<ParamField path="sidebar" type="boolean" default="true">
+  Whether to display the sidebar on this page.
+</ParamField>
+
+```yaml
+---
+sidebar: false
+---
+```
+
+### aside
+
+<ParamField path="aside" type="boolean | 'left'" default="true">
+  Controls the aside (table of contents) rendering.
+  
+  - `false`: No aside
+  - `true`: Aside to the right
+  - `'left'`: Aside to the left
+  
+  Overrides [theme-level `aside`](/api/theme-config#aside).
+</ParamField>
+
+```yaml
+---
+aside: left
+---
+```
+
+### outline
+
+<ParamField path="outline" type="number | [number, number] | 'deep' | false" default="2">
+  The levels of headers to display in the outline.
+  
+  - Number: Single level (e.g., `2` for only `<h2>`)
+  - Array: Range (e.g., `[2, 4]` for `<h2>` to `<h4>`)
+  - `'deep'`: All levels from `<h2>` to `<h6>` (equivalent to `[2, 6]`)
+  - `false`: Disable outline
+  
+  Overrides the level from [theme-level `outline`](/api/theme-config#outline).
+</ParamField>
+
+<CodeGroup>
+```yaml Single Level
+---
+outline: 3
+---
+```
+
+```yaml Range
+---
+outline: [2, 4]
+---
+```
+
+```yaml Deep
+---
+outline: deep
+---
+```
+
+```yaml Disabled
+---
+outline: false
+---
+```
+</CodeGroup>
+
+## Footer & Navigation
+
+### footer
+
+<ParamField path="footer" type="boolean" default="true">
+  Whether to display the footer on this page.
+  
+  Overrides [theme-level `footer`](/api/theme-config#footer).
+</ParamField>
+
+```yaml
+---
+footer: false
+---
+```
+
+### editLink
+
+<ParamField path="editLink" type="boolean" default="true">
+  Whether to display the edit link in the footer of this page.
+  
+  Overrides [theme-level `editLink`](/api/theme-config#editlink).
+</ParamField>
+
+```yaml
+---
+editLink: false
+---
+```
+
+### lastUpdated
+
+<ParamField path="lastUpdated" type="boolean | Date" default="true">
+  Whether to display the last updated timestamp in the footer.
+  
+  If a `Date` object is provided, it will be displayed instead of the Git timestamp.
+</ParamField>
+
+<CodeGroup>
+```yaml Disable
+---
+lastUpdated: false
+---
+```
+
+```yaml Custom Date
+---
+lastUpdated: 2024-01-15
+---
+```
+</CodeGroup>
+
+### prev
+
+<ParamField path="prev" type="string | boolean | { text: string; link: string }">
+  Customize or disable the previous page link in the doc footer.
+  
+  - String: Use as link text with auto-detected URL
+  - Boolean `false`: Disable previous link
+  - Object: Fully customize text and link
+</ParamField>
+
+<CodeGroup>
+```yaml Text Only
+---
+prev: 'Installation Guide'
+---
+```
+
+```yaml Disabled
+---
+prev: false
+---
+```
+
+```yaml Full Control
+---
+prev:
+  text: 'Back to Introduction'
+  link: '/guide/intro'
+---
+```
+</CodeGroup>
+
+### next
+
+<ParamField path="next" type="string | boolean | { text: string; link: string }">
+  Customize or disable the next page link in the doc footer.
+  
+  Same options as `prev`.
+</ParamField>
+
+<CodeGroup>
+```yaml Text Only
+---
+next: 'Advanced Configuration'
+---
+```
+
+```yaml Disabled
+---
+next: false
+---
+```
+
+```yaml Full Control
+---
+next:
+  text: 'Continue to API Reference'
+  link: '/api/overview'
+---
+```
+</CodeGroup>
+
+## Styling
+
+### pageClass
+
+<ParamField path="pageClass" type="string">
+  Add an extra CSS class name to this specific page for custom styling.
+</ParamField>
+
+```yaml
+---
+pageClass: custom-page-class
+---
+```
+
+Then style it in `.vitepress/theme/custom.css`:
+
+```css
+.custom-page-class {
+  /* page-specific styles */
+  background: linear-gradient(to bottom, #f0f0f0, #ffffff);
+}
+
+.custom-page-class h1 {
+  color: #ff6600;
+}
+```
+
+## Special Flags
+
+### isHome
+
+<ParamField path="isHome" type="boolean">
+  Force the page to be treated as the home page by the theme.
+  
+  Useful when using a custom layout but wanting home page elements to appear.
+</ParamField>
+
+```yaml
+---
+layout: page
+isHome: true
+---
+```
+
+## SEO & Social
+
+While not built-in frontmatter options, you can add custom frontmatter and use it with hooks:
+
+```yaml
+---
+title: My Page
+image: /images/og-image.jpg
+author: John Doe
+date: 2024-01-15
+tags:
+  - guide
+  - tutorial
+---
+```
+
+Access in your theme or via `transformPageData`:
+
+```ts
+// .vitepress/config.ts
+export default {
+  transformPageData(pageData) {
+    pageData.frontmatter.head ??= []
+    
+    if (pageData.frontmatter.image) {
+      pageData.frontmatter.head.push([
+        'meta',
+        { property: 'og:image', content: pageData.frontmatter.image }
+      ])
+    }
+  }
+}
+```
+
+## Example: Complete Frontmatter
+
+Here's a comprehensive example showing many options together:
+
+```yaml
+---
+# Metadata
+title: Complete Configuration Guide
+description: A comprehensive guide to configuring VitePress
+head:
+  - - meta
+    - property: og:type
+      content: article
+  - - meta
+    - name: twitter:card
+      content: summary_large_image
+
+# Layout
+layout: doc
+aside: left
+outline: [2, 3]
+
+# Navigation
+navbar: true
+sidebar: true
+
+# Footer
+footer: true
+editLink: true
+lastUpdated: true
+
+prev:
+  text: 'Installation'
+  link: '/guide/installation'
+
+next:
+  text: 'Advanced Features'
+  link: '/guide/advanced'
+
+# Styling
+pageClass: config-guide-page
+
+# Custom fields (accessible via $frontmatter)
+author: VitePress Team
+date: 2024-01-15
+tags:
+  - configuration
+  - guide
+  - advanced
+---
+
+# Your content here
+```
+
+## Accessing Frontmatter
+
+### In Markdown
+
+Use the `$frontmatter` global:
+
+```md
+Author: {{ $frontmatter.author }}
+Published: {{ $frontmatter.date }}
+```
+
+### In Vue Components
+
+Use the `useData()` composable:
+
+```vue
+<script setup>
+import { useData } from 'vitepress'
+
+const { frontmatter } = useData()
+</script>
+
+<template>
+  <div>Author: {{ frontmatter.author }}</div>
+</template>
+```
+
+### In Config Hooks
+
+Access via the `pageData` parameter:
+
+```ts
+export default {
+  async transformPageData(pageData) {
+    console.log(pageData.frontmatter)
+    
+    // Modify or augment frontmatter
+    pageData.frontmatter.processedDate = new Date(
+      pageData.frontmatter.date
+    ).toLocaleDateString()
+  }
+}
+```

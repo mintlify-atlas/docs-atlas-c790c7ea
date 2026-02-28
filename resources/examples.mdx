@@ -1,0 +1,635 @@
+---
+title: Examples & Showcase
+description: Real-world examples and sites built with VitePress
+---
+
+# Examples & Showcase
+
+Learn from real-world VitePress implementations and explore sites built with VitePress.
+
+## Official Examples
+
+<CardGroup cols={2}>
+  <Card title="VitePress Documentation" icon="book" href="https://vitepress.dev">
+    The official VitePress documentation site - the best reference implementation.
+  </Card>
+  
+  <Card title="Vue.js Documentation" icon="vuejs" href="https://vuejs.org">
+    The official Vue.js documentation, built with VitePress.
+  </Card>
+  
+  <Card title="Vite Documentation" icon="bolt" href="https://vitejs.dev">
+    Vite's official documentation site using VitePress.
+  </Card>
+  
+  <Card title="Vitest Documentation" icon="flask" href="https://vitest.dev">
+    Vitest testing framework documentation.
+  </Card>
+</CardGroup>
+
+## Getting Started Examples
+
+### Basic Site Setup
+
+A minimal VitePress site structure:
+
+```bash
+.
+├── docs
+│   ├── .vitepress
+│   │   └── config.ts
+│   ├── index.md
+│   └── guide
+│       ├── getting-started.md
+│       └── configuration.md
+└── package.json
+```
+
+**package.json**:
+
+```json
+{
+  "name": "my-vitepress-site",
+  "version": "1.0.0",
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "vitepress": "^2.0.0-alpha.16"
+  }
+}
+```
+
+**docs/.vitepress/config.ts**:
+
+```typescript
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  title: 'My Docs',
+  description: 'My awesome documentation',
+  themeConfig: {
+    nav: [
+      { text: 'Home', link: '/' },
+      { text: 'Guide', link: '/quickstart' }
+    ],
+    sidebar: [
+      {
+        text: 'Guide',
+        items: [
+          { text: 'Getting Started', link: '/quickstart' },
+          { text: 'Configuration', link: '/guide/configuration' }
+        ]
+      }
+    ]
+  }
+})
+```
+
+### Home Page with Hero
+
+**docs/index.md**:
+
+```yaml
+---
+layout: home
+
+hero:
+  name: My Project
+  text: Build amazing documentation
+  tagline: Fast, simple, and powerful
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /quickstart
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/username/repo
+
+features:
+  - title: Fast
+    details: Built on Vite for lightning-fast development and builds
+  - title: Simple
+    details: Minimal configuration, markdown-focused content
+  - title: Powerful
+    details: Full Vue.js support in markdown pages
+---
+```
+
+### Custom Theme Example
+
+Extending the default theme:
+
+**docs/.vitepress/theme/index.ts**:
+
+```typescript
+import DefaultTheme from 'vitepress/theme'
+import './custom.css'
+
+export default {
+  extends: DefaultTheme,
+  enhanceApp({ app }) {
+    // Register custom global components
+    app.component('MyComponent', MyComponent)
+  }
+}
+```
+
+**docs/.vitepress/theme/custom.css**:
+
+```css
+:root {
+  --vp-c-brand-1: #646cff;
+  --vp-c-brand-2: #747bff;
+}
+
+.dark {
+  --vp-c-brand-1: #747bff;
+  --vp-c-brand-2: #646cff;
+}
+```
+
+## Advanced Examples
+
+### Multi-language Site
+
+**config.ts**:
+
+```typescript
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  locales: {
+    root: {
+      label: 'English',
+      lang: 'en',
+      themeConfig: {
+        nav: [
+          { text: 'Guide', link: '/guide/' }
+        ]
+      }
+    },
+    fr: {
+      label: 'Français',
+      lang: 'fr',
+      link: '/fr/',
+      themeConfig: {
+        nav: [
+          { text: 'Guide', link: '/fr/guide/' }
+        ]
+      }
+    }
+  }
+})
+```
+
+Directory structure:
+
+```bash
+docs/
+├── index.md          # English home
+├── guide/
+│   └── index.md
+└── fr/
+    ├── index.md      # French home
+    └── guide/
+        └── index.md
+```
+
+### Dynamic Routes with Data Loading
+
+**docs/.vitepress/config.ts**:
+
+```typescript
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  async paths() {
+    // Fetch data from API or files
+    const posts = await fetchBlogPosts()
+    
+    return posts.map(post => ({
+      params: {
+        id: post.id,
+        title: post.title,
+        content: post.content
+      }
+    }))
+  }
+})
+```
+
+**docs/posts/[id].md**:
+
+```yaml
+---
+title: {{ $params.title }}
+---
+
+# {{ $params.title }}
+
+{{ $params.content }}
+```
+
+### Content Collections with createContentLoader
+
+**docs/.vitepress/theme/posts.data.ts**:
+
+```typescript
+import { createContentLoader } from 'vitepress'
+
+interface Post {
+  title: string
+  url: string
+  date: {
+    time: number
+    string: string
+  }
+  excerpt: string
+}
+
+declare const data: Post[]
+export { data }
+
+export default createContentLoader('posts/*.md', {
+  excerpt: true,
+  transform(raw): Post[] {
+    return raw
+      .map(({ url, frontmatter, excerpt }) => ({
+        title: frontmatter.title,
+        url,
+        excerpt,
+        date: formatDate(frontmatter.date)
+      }))
+      .sort((a, b) => b.date.time - a.date.time)
+  }
+})
+
+function formatDate(raw: string): Post['date'] {
+  const date = new Date(raw)
+  return {
+    time: +date,
+    string: date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+}
+```
+
+Use in a page:
+
+```vue
+<script setup>
+import { data as posts } from './posts.data'
+</script>
+
+<template>
+  <div v-for="post in posts" :key="post.url">
+    <h2><a :href="post.url">{{ post.title }}</a></h2>
+    <p>{{ post.date.string }}</p>
+    <p>{{ post.excerpt }}</p>
+  </div>
+</template>
+```
+
+### Algolia DocSearch Integration
+
+**config.ts**:
+
+```typescript
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  themeConfig: {
+    search: {
+      provider: 'algolia',
+      options: {
+        appId: 'YOUR_APP_ID',
+        apiKey: 'YOUR_API_KEY',
+        indexName: 'YOUR_INDEX_NAME'
+      }
+    }
+  }
+})
+```
+
+### Local Search Implementation
+
+**config.ts**:
+
+```typescript
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  themeConfig: {
+    search: {
+      provider: 'local',
+      options: {
+        locales: {
+          root: {
+            translations: {
+              button: {
+                buttonText: 'Search',
+                buttonAriaLabel: 'Search'
+              },
+              modal: {
+                displayDetails: 'Display detailed list',
+                resetButtonTitle: 'Reset search',
+                noResultsText: 'No results for',
+                footer: {
+                  selectText: 'to select',
+                  navigateText: 'to navigate',
+                  closeText: 'to close'
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+})
+```
+
+## Real-world Sites Built with VitePress
+
+<CardGroup cols={2}>
+  <Card title="Vue.js" icon="vuejs" href="https://vuejs.org">
+    Progressive JavaScript Framework documentation
+  </Card>
+  
+  <Card title="Vite" icon="bolt" href="https://vitejs.dev">
+    Next Generation Frontend Tooling
+  </Card>
+  
+  <Card title="Vitest" icon="flask" href="https://vitest.dev">
+    Blazing Fast Unit Test Framework
+  </Card>
+  
+  <Card title="Rollup" icon="box" href="https://rollupjs.org">
+    JavaScript module bundler
+  </Card>
+  
+  <Card title="UnoCSS" icon="palette" href="https://unocss.dev">
+    Instant On-demand Atomic CSS Engine
+  </Card>
+  
+  <Card title="Pinia" icon="store" href="https://pinia.vuejs.org">
+    The Vue Store that you will enjoy using
+  </Card>
+</CardGroup>
+
+## Code Examples
+
+### Using Vue Components in Markdown
+
+**docs/.vitepress/theme/components/Counter.vue**:
+
+```vue
+<script setup>
+import { ref } from 'vue'
+
+const count = ref(0)
+</script>
+
+<template>
+  <button @click="count++">Count is: {{ count }}</button>
+</template>
+
+<style scoped>
+button {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  background: var(--vp-c-brand-1);
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+</style>
+```
+
+**docs/guide/example.md**:
+
+```markdown
+# Interactive Example
+
+Here's a counter component:
+
+<Counter />
+```
+
+### Custom Markdown Container
+
+**config.ts**:
+
+```typescript
+import { defineConfig } from 'vitepress'
+import container from 'markdown-it-container'
+
+export default defineConfig({
+  markdown: {
+    config: (md) => {
+      md.use(container, 'sandbox', {
+        render(tokens, idx) {
+          const token = tokens[idx]
+          if (token.nesting === 1) {
+            return '<div class="sandbox">\n'
+          } else {
+            return '</div>\n'
+          }
+        }
+      })
+    }
+  }
+})
+```
+
+Use in markdown:
+
+```markdown
+::: sandbox
+This is a custom sandbox container!
+:::
+```
+
+### Syntax Highlighting with Shiki
+
+**config.ts**:
+
+```typescript
+import { defineConfig } from 'vitepress'
+
+export default defineConfig({
+  markdown: {
+    theme: {
+      light: 'github-light',
+      dark: 'github-dark'
+    },
+    languages: [
+      'javascript',
+      'typescript',
+      'vue',
+      'bash'
+    ]
+  }
+})
+```
+
+In markdown:
+
+```markdown
+```typescript{1,3-4}
+function hello() {
+  console.log('Hello')
+  const name = 'VitePress'
+  return name
+}
+```
+```
+
+### Build Hooks Example
+
+**config.ts**:
+
+```typescript
+import { defineConfig } from 'vitepress'
+import fs from 'fs'
+
+export default defineConfig({
+  buildEnd(siteConfig) {
+    // Generate sitemap
+    const sitemap = generateSitemap(siteConfig)
+    fs.writeFileSync('dist/sitemap.xml', sitemap)
+  },
+  
+  transformHead({ pageData }) {
+    // Add custom meta tags
+    return [
+      ['meta', { property: 'og:title', content: pageData.title }],
+      ['meta', { property: 'og:description', content: pageData.description }]
+    ]
+  }
+})
+```
+
+## Project Templates
+
+### Minimal Template
+
+Quickly scaffold a new VitePress site:
+
+```bash
+npx vitepress init
+```
+
+Follow the prompts to set up:
+- Installation directory
+- Site title
+- Description
+- Default theme customization
+
+### Monorepo Setup
+
+For projects with multiple packages:
+
+```bash
+workspace/
+├── packages/
+│   ├── core/
+│   │   └── README.md
+│   └── utils/
+│       └── README.md
+├── docs/
+│   ├── .vitepress/
+│   │   └── config.ts
+│   ├── index.md
+│   ├── core/
+│   └── utils/
+└── package.json
+```
+
+**package.json** (root):
+
+```json
+{
+  "private": true,
+  "workspaces": ["packages/*", "docs"],
+  "scripts": {
+    "docs:dev": "pnpm --filter docs dev",
+    "docs:build": "pnpm --filter docs build"
+  }
+}
+```
+
+## Tips & Best Practices
+
+<Accordion title="Optimize Build Performance">
+For large documentation sites:
+
+```typescript
+export default defineConfig({
+  markdown: {
+    cache: true // Enable markdown caching
+  },
+  vite: {
+    build: {
+      chunkSizeWarningLimit: 1000
+    }
+  }
+})
+```
+</Accordion>
+
+<Accordion title="SEO Optimization">
+Improve SEO with proper meta tags:
+
+```typescript
+export default defineConfig({
+  head: [
+    ['link', { rel: 'icon', href: '/favicon.ico' }],
+    ['meta', { name: 'theme-color', content: '#3eaf7c' }],
+    ['meta', { name: 'og:type', content: 'website' }],
+    ['meta', { name: 'og:locale', content: 'en' }]
+  ],
+  sitemap: {
+    hostname: 'https://example.com'
+  }
+})
+```
+</Accordion>
+
+<Accordion title="Custom 404 Page">
+Create a branded 404 experience:
+
+**docs/.vitepress/theme/NotFound.vue**:
+
+```vue
+<script setup>
+import { useData } from 'vitepress'
+const { site } = useData()
+</script>
+
+<template>
+  <div class="NotFound">
+    <h1>404 - Page Not Found</h1>
+    <p>Sorry, we couldn't find what you're looking for.</p>
+    <a :href="site.base">Take me home</a>
+  </div>
+</template>
+```
+</Accordion>
+
+## Learning Resources
+
+- **Official Docs**: [vitepress.dev](https://vitepress.dev)
+- **GitHub Repository**: [vuejs/vitepress](https://github.com/vuejs/vitepress)
+- **Examples in the Wild**: Browse the [sites using VitePress](https://github.com/vuejs/vitepress/network/dependents)
+- **Community Discord**: [chat.vuejs.org](https://chat.vuejs.org)
+
+<Note>
+Have a VitePress site you'd like to showcase? Share it in the [VitePress discussions](https://github.com/vuejs/vitepress/discussions)!
+</Note>
