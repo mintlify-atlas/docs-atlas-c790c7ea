@@ -1,0 +1,124 @@
+{
+  "projectType": "framework",
+  "projectName": "VitePress",
+  "projectDescription": "Vite & Vue powered static site generator for building documentation sites",
+  "theme": "palm",
+  "primaryColor": "#42b883",
+  "lightColor": "#42d392",
+  "darkColor": "#42b883",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "routing",
+              "deploying"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/markdown",
+              "concepts/asset-handling",
+              "concepts/frontmatter",
+              "concepts/data-loading",
+              "concepts/internationalization"
+            ]
+          },
+          {
+            "group": "Customization",
+            "pages": [
+              "customization/configuration",
+              "customization/theme-config",
+              "customization/custom-theme",
+              "customization/extending-default-theme"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/build-time-data",
+              "advanced/ssr-compat",
+              "advanced/dynamic-routes",
+              "advanced/using-vue"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Configuration",
+            "pages": [
+              "api/site-config",
+              "api/theme-config",
+              "api/frontmatter-config"
+            ]
+          },
+          {
+            "group": "Node API",
+            "pages": [
+              "api/node/build",
+              "api/node/serve",
+              "api/node/config",
+              "api/node/markdown"
+            ]
+          },
+          {
+            "group": "Client API",
+            "pages": [
+              "api/client/runtime",
+              "api/client/composables",
+              "api/client/theme"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Resources",
+            "pages": [
+              "resources/migration-guide",
+              "resources/examples",
+              "resources/contributing",
+              "resources/faq"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Vite-powered static site generation with fast HMR",
+    "Vue-based markdown rendering with component support",
+    "Built-in default theme with customization options",
+    "Markdown extensions with frontmatter and code highlighting",
+    "Dynamic routes and data loading capabilities",
+    "I18n support for multi-language documentation",
+    "Search functionality with local and Algolia support",
+    "SSR-compatible with optimized production builds"
+  ],
+  "publicApiSurface": [
+    "vitepress dev [root]",
+    "vitepress build [root]",
+    "vitepress preview [root]",
+    "vitepress init",
+    "defineConfig()",
+    "defineConfigWithTheme()",
+    "createContentLoader()",
+    "defineLoader()",
+    "useData()",
+    "useRoute()",
+    "useRouter()",
+    "withBase()",
+    "DefaultTheme.Config"
+  ]
+}
